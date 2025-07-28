@@ -2,26 +2,23 @@ import { Platform } from 'react-native';
 
 // API Configuration and utilities
 const getApiBaseUrl = () => {
+  // Use the deployed backend URL for all platforms
+  const deployedUrl = 'https://broadcast-backend-2.onrender.com/api';
+
   if (Platform.OS === 'web') {
-    // For web, use the same origin or localhost
+    // For web, prioritize the deployed URL unless overridden by environment variable
     if (typeof window !== 'undefined') {
-      const { protocol, hostname } = window.location;
-      // If running on localhost, use the backend port
+      const { hostname } = window.location;
+      // For local development, allow fallback to localhost
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3001/api';
+        return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
       }
-      // For production, use the same origin
-      return `${protocol}//${hostname}/api`;
+      return deployedUrl;
     }
-    return 'http://localhost:3001/api';
+    return deployedUrl;
   } else {
-    // For mobile platforms (Android/iOS), use the computer's IP address
-    // IMPORTANT: Replace with your actual computer's IP address
-    const defaultUrl = Platform.OS === 'android' 
-      ? 'http://192.168.173.65:3001/api'  // Your computer's IP for Android
-      : 'http://192.168.173.65:3001/api'; // Your computer's IP for iOS
-    
-    return process.env.EXPO_PUBLIC_API_URL || defaultUrl;
+    // For mobile platforms (Android/iOS), use the deployed URL
+    return process.env.EXPO_PUBLIC_API_URL || deployedUrl;
   }
 };
 
@@ -80,11 +77,11 @@ class ApiClient {
       let errorMessage = 'Network error occurred';
       if (error instanceof TypeError && error.message.includes('Network request failed')) {
         if (Platform.OS === 'android') {
-          errorMessage = 'Unable to connect to server. Make sure:\n1. Backend server is running (npm run server)\n2. Your computer IP is 192.168.18.40\n3. Both devices are on the same WiFi network\n4. Firewall allows port 3001';
+          errorMessage = 'Unable to connect to server. Make sure:\n1. The backend server is accessible at https://broadcast-backend-2.onrender.com\n2. Your device has an active internet connection';
         } else if (Platform.OS === 'ios') {
-          errorMessage = 'Unable to connect to server. Make sure the backend is running and accessible from iOS device.';
+          errorMessage = 'Unable to connect to server. Please ensure the backend at https://broadcast-backend-2.onrender.com is accessible from your iOS device.';
         } else {
-          errorMessage = 'Unable to connect to server. Please ensure the backend is running on port 3001.';
+          errorMessage = 'Unable to connect to server. Please ensure the backend is accessible at https://broadcast-backend-2.onrender.com';
         }
       }
       
