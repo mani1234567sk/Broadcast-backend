@@ -130,11 +130,11 @@ export default function AdminScreen() {
       description: 'Manage sports highlights and featured content',
     },
     {
-      title: 'Featured Content',
+      title: 'Featured Images',
       icon: Play,
       color: '#10B981',
       route: '/admin/featured',
-      description: 'Set featured videos and highlights',
+      description: 'Manage featured images for What\'s New section',
     },
   ];
 
