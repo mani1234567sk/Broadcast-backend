@@ -115,7 +115,7 @@ export default function LeagueDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   content: {
     flex: 1,

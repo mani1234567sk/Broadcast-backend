@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, ImageBackground } from 'react-native';
 import { Trophy, Filter, Star, Play } from 'lucide-react-native';
 import Header from '@/components/Header';
 import VideoCard from '@/components/VideoCard';
@@ -134,153 +134,165 @@ export default function HighlightsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header title="Sports Highlights" />
-        <View style={styles.loadingContainer}>
-          <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-          <Text style={styles.loadingText}>Loading highlights...</Text>
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="Sports Highlights" />
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+            <Text style={styles.loadingText}>Loading highlights...</Text>
+          </View>
         </View>
-      </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header title="Sports Highlights" />
-      
-      {/* Filter Section */}
-      <View style={styles.filterSection}>
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Filter size={20} color="#FFFFFF" />
-          <Text style={styles.filterButtonText}>
-            {selectedSport === 'All' ? 'All Sports' : selectedSport}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Filter Options */}
-      {showFilters && (
-        <View style={styles.filterOptions}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {sportCategories.map((sport) => (
-              <TouchableOpacity
-                key={sport}
-                style={[
-                  styles.sportChip,
-                  selectedSport === sport && styles.sportChipActive
-                ]}
-                onPress={() => handleSportFilter(sport)}
-              >
-                <Text style={[
-                  styles.sportChipText,
-                  selectedSport === sport && styles.sportChipTextActive
-                ]}>
-                  {sport}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <View style={styles.overlay}>
+        <Header title="Sports Highlights" />
+        
+        {/* Filter Section */}
+        <View style={styles.filterSection}>
+          <TouchableOpacity 
+            style={styles.filterButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Filter size={20} color="#FFFFFF" />
+            <Text style={styles.filterButtonText}>
+              {selectedSport === 'All' ? 'All Sports' : selectedSport}
+            </Text>
+          </TouchableOpacity>
         </View>
-      )}
-      
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Featured Highlights */}
-        {featuredHighlights.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Star size={24} color="#FFD700" />
-              <Text style={styles.sectionTitle}>Featured Highlights</Text>
-            </View>
-            {featuredHighlights.map((highlight) => (
-              <View key={highlight.id} style={styles.featuredCard}>
-                <VideoCard
-                  video={{
-                    id: highlight.id,
-                    title: highlight.title,
-                    thumbnailUrl: highlight.thumbnailUrl,
-                    duration: highlight.duration,
-                    uploadDate: highlight.uploadDate,
-                    videoId: highlight.videoId
-                  }}
-                  onPress={() => handleVideoPress(highlight.id)}
-                />
-                <View style={styles.featuredBadge}>
-                  <Star size={16} color="#FFD700" fill="#FFD700" />
-                  <Text style={styles.featuredText}>Featured</Text>
-                </View>
-                <View style={styles.highlightMeta}>
-                  <Text style={styles.sportTag}>{highlight.sport}</Text>
-                  <Text style={styles.viewCount}>{highlight.views.toLocaleString()} views</Text>
-                </View>
-              </View>
-            ))}
+
+        {/* Filter Options */}
+        {showFilters && (
+          <View style={styles.filterOptions}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {sportCategories.map((sport) => (
+                <TouchableOpacity
+                  key={sport}
+                  style={[
+                    styles.sportChip,
+                    selectedSport === sport && styles.sportChipActive
+                  ]}
+                  onPress={() => handleSportFilter(sport)}
+                >
+                  <Text style={[
+                    styles.sportChipText,
+                    selectedSport === sport && styles.sportChipTextActive
+                  ]}>
+                    {sport}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         )}
-
-        {/* Regular Highlights */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Play size={24} color="#8B5CF6" />
-            <Text style={styles.sectionTitle}>
-              {selectedSport === 'All' ? 'All Highlights' : `${selectedSport} Highlights`}
-            </Text>
-          </View>
-          
-          {regularHighlights.length > 0 ? (
-            regularHighlights.map((highlight) => (
-              <View key={highlight.id} style={styles.highlightCard}>
-                <VideoCard
-                  video={{
-                    id: highlight.id,
-                    title: highlight.title,
-                    thumbnailUrl: highlight.thumbnailUrl,
-                    duration: highlight.duration,
-                    uploadDate: highlight.uploadDate,
-                    videoId: highlight.videoId
-                  }}
-                  onPress={() => handleVideoPress(highlight.id)}
-                />
-                <View style={styles.highlightMeta}>
-                  <Text style={styles.sportTag}>{highlight.sport}</Text>
-                  <Text style={styles.viewCount}>{highlight.views.toLocaleString()} views</Text>
-                </View>
+        
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Featured Highlights */}
+          {featuredHighlights.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Star size={24} color="#FFD700" />
+                <Text style={styles.sectionTitle}>Featured Highlights</Text>
               </View>
-            ))
-          ) : (
-            <View style={styles.emptyState}>
-              <Trophy size={64} color="#D1D5DB" />
-              <Text style={styles.emptyText}>
-                {selectedSport === 'All' 
-                  ? 'No highlights available' 
-                  : `No ${selectedSport} highlights found`
-                }
-              </Text>
-              <Text style={styles.emptySubtext}>
-                Check back later for amazing sports moments!
-              </Text>
+              {featuredHighlights.map((highlight) => (
+                <View key={highlight.id} style={styles.featuredCard}>
+                  <VideoCard
+                    video={{
+                      id: highlight.id,
+                      title: highlight.title,
+                      thumbnailUrl: highlight.thumbnailUrl,
+                      duration: highlight.duration,
+                      uploadDate: highlight.uploadDate,
+                      videoId: highlight.videoId
+                    }}
+                    onPress={() => handleVideoPress(highlight.id)}
+                  />
+                  <View style={styles.featuredBadge}>
+                    <Star size={16} color="#FFD700" fill="#FFD700" />
+                    <Text style={styles.featuredText}>Featured</Text>
+                  </View>
+                  <View style={styles.highlightMeta}>
+                    <Text style={styles.sportTag}>{highlight.sport}</Text>
+                    <Text style={styles.viewCount}>{highlight.views.toLocaleString()} views</Text>
+                  </View>
+                </View>
+              ))}
             </View>
           )}
-        </View>
-      </ScrollView>
-    </View>
+
+          {/* Regular Highlights */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Play size={24} color="#8B5CF6" />
+              <Text style={styles.sectionTitle}>
+                {selectedSport === 'All' ? 'All Highlights' : `${selectedSport} Highlights`}
+              </Text>
+            </View>
+            
+            {regularHighlights.length > 0 ? (
+              regularHighlights.map((highlight) => (
+                <View key={highlight.id} style={styles.highlightCard}>
+                  <VideoCard
+                    video={{
+                      id: highlight.id,
+                      title: highlight.title,
+                      thumbnailUrl: highlight.thumbnailUrl,
+                      duration: highlight.duration,
+                      uploadDate: highlight.uploadDate,
+                      videoId: highlight.videoId
+                    }}
+                    onPress={() => handleVideoPress(highlight.id)}
+                  />
+                  <View style={styles.highlightMeta}>
+                    <Text style={styles.sportTag}>{highlight.sport}</Text>
+                    <Text style={styles.viewCount}>{highlight.views.toLocaleString()} views</Text>
+                  </View>
+                </View>
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <Trophy size={64} color="#D1D5DB" />
+                <Text style={styles.emptyText}>
+                  {selectedSport === 'All' 
+                    ? 'No highlights available' 
+                    : `No ${selectedSport} highlights found`
+                  }
+                </Text>
+                <Text style={styles.emptySubtext}>
+                  Check back later for amazing sports moments!
+                </Text>
+              </View>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -290,7 +302,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
@@ -298,7 +310,7 @@ const styles = StyleSheet.create({
   filterSection: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#8B5CF6',
   },
   filterButton: {
     flexDirection: 'row',
@@ -311,12 +323,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterButtonText: {
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
   },
   filterOptions: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#8B5CF6',
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
@@ -334,12 +346,12 @@ const styles = StyleSheet.create({
     borderColor: '#FFFFFF',
   },
   sportChipText: {
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
   },
   sportChipTextActive: {
-    color: '#FFFFFF',
+    color: '#522e8e',
     fontWeight: '600',
   },
   section: {
@@ -358,7 +370,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
   },
   featuredCard: {
     position: 'relative',
@@ -402,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   viewCount: {
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontSize: 12,
     opacity: 0.8,
   },
@@ -416,14 +428,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#E0E7FF',
     textAlign: 'center',
     opacity: 0.8,
   },

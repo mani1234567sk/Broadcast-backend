@@ -576,7 +576,7 @@ export default function AdminVideosScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   loadingContainer: {
     flex: 1,
@@ -590,11 +590,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
   },
   loadingSubtext: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#E0E7FF',
     textAlign: 'center',
   },
   header: {
@@ -643,13 +643,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#6B7280',
     marginTop: 24,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#A855F7',
+    color: '#9CA3AF',
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
@@ -691,12 +691,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   categoryText: {
-    color: '#FFFFFF',
+    color: '#8B5CF6',
     fontSize: 12,
     fontWeight: '600',
   },
   viewCount: {
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontSize: 12,
     opacity: 0.8,
   },

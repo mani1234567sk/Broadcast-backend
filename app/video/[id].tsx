@@ -141,7 +141,7 @@ export default function VideoDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   content: {
     flex: 1,
@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
@@ -163,11 +163,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   videoDetails: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#FFFFFF',
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#522e8e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
     marginBottom: 16,
     lineHeight: 28,
   },
@@ -196,18 +196,18 @@ const styles = StyleSheet.create({
   },
   metadataText: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: '#6B7280',
   },
   durationText: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#522e8e',
     fontWeight: '600',
   },
   categoryContainer: {
     marginBottom: 20,
   },
   categoryBadge: {
-    backgroundColor: '#A855F7',
+    backgroundColor: '#522e8e',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 12,
@@ -239,12 +239,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
     marginBottom: 8,
   },
   description: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: '#6B7280',
     lineHeight: 20,
   },
 });

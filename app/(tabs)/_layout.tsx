@@ -14,9 +14,9 @@ export default function TabLayout() {
   const screenOptions: BottomTabNavigationOptions = {
     headerShown: false,
     tabBarActiveTintColor: '#8B5CF6',
-    tabBarInactiveTintColor: '#9CA3AF',
+    tabBarInactiveTintColor: '#6B7280',
     tabBarStyle: {
-      backgroundColor: '#FFFFFF',
+      backgroundColor: '#F3F4F6',
       borderTopColor: '#E5E7EB',
       paddingTop: 8,
       paddingBottom: Platform.select({ 
@@ -58,7 +58,7 @@ export default function TabLayout() {
   return (
     <SafeAreaView style={{ 
       flex: 1, 
-      backgroundColor: '#000000',
+      backgroundColor: '#F3F4F6',
       paddingBottom: Platform.select({
         android: 0, // Remove extra padding on Android
         ios: 0,

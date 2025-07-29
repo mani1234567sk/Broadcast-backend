@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, RefreshControl, Text } from 'react-native'; // Added Text import
+import { View, ScrollView, StyleSheet, RefreshControl, Text, ImageBackground } from 'react-native';
 import Header from '@/components/Header';
 import LeagueCard from '@/components/LeagueCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -56,47 +56,59 @@ export default function LeaguesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header title="Leagues" />
-        <View style={styles.loadingContainer}>
-          <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-          <Text style={styles.loadingText} allowFontScaling={false}>Loading leagues...</Text>
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="Leagues" />
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+            <Text style={styles.loadingText} allowFontScaling={false}>Loading leagues...</Text>
+          </View>
         </View>
-      </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header title="Leagues" />
-      
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.leaguesList}>
-          {leagues.map((league) => (
-            <LeagueCard
-              key={league.id}
-              league={league}
-              onPress={() => handleLeaguePress(league.id)}
-            />
-          ))}
-        </View>
-      </ScrollView>
-    </View>
+    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <View style={styles.overlay}>
+        <Header title="Leagues" />
+        
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.leaguesList}>
+            {leagues.map((league) => (
+              <LeagueCard
+                key={league.id}
+                league={league}
+                onPress={() => handleLeaguePress(league.id)}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -106,7 +118,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',

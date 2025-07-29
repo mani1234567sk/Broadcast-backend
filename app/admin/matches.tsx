@@ -478,7 +478,7 @@ export default function AdminMatchesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   loadingContainer: {
     flex: 1,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
@@ -523,16 +523,16 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#6B7280',
     textAlign: 'center',
   },
   matchCard: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#8B5CF6',
+    shadowColor: '#6B46C1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -568,13 +568,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#6B46C1',
     textAlign: 'center',
   },
   vsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#A855F7',
+    color: '#8B5CF6',
     marginHorizontal: 16,
   },
   matchHeader: {
@@ -591,29 +591,29 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#E0E7FF',
+    color: '#6B7280',
   },
   matchTitle: {
     fontSize: 18,
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#6B46C1',
     marginBottom: 4,
   },
   matchDetails: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: '#6B7280',
     marginBottom: 2,
   },
   matchVenue: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: '#6B7280',
     marginBottom: 2,
   },
   matchLeague: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#8B5CF6',
     fontWeight: '600',
     marginBottom: 12,
   },

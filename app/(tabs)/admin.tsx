@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform, ImageBackground } from 'react-native';
 import { Play, Trophy, Calendar, Video, Plus, ChartBar as BarChart3, LogOut } from 'lucide-react-native';
 import Header from '@/components/Header';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -130,11 +130,11 @@ export default function AdminScreen() {
       description: 'Manage sports highlights and featured content',
     },
     {
-      title: 'Featured Images',
+      title: 'Featured Content',
       icon: Play,
       color: '#10B981',
       route: '/admin/featured',
-      description: 'Manage featured images for What\'s New section',
+      description: 'Set featured videos and highlights',
     },
   ];
 
@@ -148,18 +148,40 @@ export default function AdminScreen() {
   // Show loading while checking authentication
   if (!isAuthenticated) {
     return (
-      <View style={styles.container}>
-        <Header title="Admin Panel" />
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Checking authentication...</Text>
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="Admin Panel" />
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Checking authentication...</Text>
+          </View>
         </View>
-      </View>
+      </ImageBackground>
     );
   }
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <View style={styles.headerContainer}>
+            <Header title="Admin Panel" />
+            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+              <LogOut size={20} color="#FFFFFF" />
+              <Text style={styles.logoutButtonText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+            <Text style={styles.loadingText}>Loading dashboard...</Text>
+          </View>
+        </View>
+      </ImageBackground>
+    );
+  }
+
+  return (
+    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <View style={styles.overlay}>
         <View style={styles.headerContainer}>
           <Header title="Admin Panel" />
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -167,71 +189,58 @@ export default function AdminScreen() {
             <Text style={styles.logoutButtonText}>Logout</Text>
           </TouchableOpacity>
         </View>
-        <View style={styles.loadingContainer}>
-          <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Header title="Admin Panel" />
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <LogOut size={20} color="#FFFFFF" />
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView style={styles.content}>
-        {/* Dashboard Stats */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <BarChart3 size={24} color="#FFFFFF" />
-            <Text style={styles.sectionTitle}>Dashboard Overview</Text>
+        
+        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+          {/* Dashboard Stats */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <BarChart3 size={24} color="#FFFFFF" />
+              <Text style={styles.sectionTitle}>Dashboard Overview</Text>
+            </View>
+            
+            <View style={styles.statsGrid}>
+              <StatCard title="Live Matches" value={stats.liveMatches} color="#EF4444" />
+              <StatCard title="Upcoming" value={stats.upcomingMatches} color="#F59E0B" />
+              <StatCard title="Completed" value={stats.completedMatches} color="#10B981" />
+              <StatCard title="Total Leagues" value={stats.totalLeagues} color="#8B5CF6" />
+              <StatCard title="Total Videos" value={stats.totalVideos} color="#6366F1" />
+              <StatCard title="Total Matches" value={stats.totalMatches} color="#6B46C1" />
+            </View>
           </View>
-          
-          <View style={styles.statsGrid}>
-            <StatCard title="Live Matches" value={stats.liveMatches} color="#EF4444" />
-            <StatCard title="Upcoming" value={stats.upcomingMatches} color="#F59E0B" />
-            <StatCard title="Completed" value={stats.completedMatches} color="#10B981" />
-            <StatCard title="Total Leagues" value={stats.totalLeagues} color="#8B5CF6" />
-            <StatCard title="Total Videos" value={stats.totalVideos} color="#6366F1" />
-            <StatCard title="Total Matches" value={stats.totalMatches} color="#6B46C1" />
-          </View>
-        </View>
 
-        {/* Management Sections */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Management</Text>
-          {adminSections.map((section, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.adminCard}
-              onPress={() => router.push(section.route as any)}
-            >
-              <View style={[styles.iconContainer, { backgroundColor: `${section.color}20` }]}>
-                <section.icon size={24} color={section.color} />
-              </View>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{section.title}</Text>
-                <Text style={styles.cardDescription}>{section.description}</Text>
-              </View>
-              <Plus size={20} color="#6B7280" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
+          {/* Management Sections */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Management</Text>
+            {adminSections.map((section, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.adminCard}
+                onPress={() => router.push(section.route as any)}
+              >
+                <View style={[styles.iconContainer, { backgroundColor: `${section.color}20` }]}>
+                  <section.icon size={24} color={section.color} />
+                </View>
+                <View style={styles.cardContent}>
+                  <Text style={styles.cardTitle}>{section.title}</Text>
+                  <Text style={styles.cardDescription}>{section.description}</Text>
+                </View>
+                <Plus size={20} color="#E0E7FF" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   headerContainer: {
     position: 'relative',
@@ -269,6 +278,10 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -277,7 +290,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
@@ -297,7 +310,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     marginBottom: 16,
   },
   statsGrid: {
@@ -313,12 +326,13 @@ const styles = StyleSheet.create({
     minWidth: 100,
     maxWidth: '48%',
     borderLeftWidth: 4,
-    borderLeftColor: '#A855F7',
-    shadowColor: '#8B5CF6',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   statValue: {
     fontSize: 28,
@@ -340,11 +354,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#8B5CF6',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   iconContainer: {
     width: 48,

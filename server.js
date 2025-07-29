@@ -114,12 +114,21 @@ const featuredContentSchema = new mongoose.Schema({
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const featuredImageSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  imageUrl: { type: String, required: true },
+  dateLabel: { type: String, required: true },
+  active: { type: Boolean, default: true },
+  order: { type: Number, default: 0 }
+}, { timestamps: true });
+
 // Models
 const Match = mongoose.model('Match', matchSchema);
 const League = mongoose.model('League', leagueSchema);
 const Video = mongoose.model('Video', videoSchema);
 const Highlight = mongoose.model('Highlight', highlightSchema);
 const FeaturedContent = mongoose.model('FeaturedContent', featuredContentSchema);
+const FeaturedImage = mongoose.model('FeaturedImage', featuredImageSchema);
 
 // Socket.IO for real-time updates
 io.on('connection', (socket) => {
@@ -568,6 +577,74 @@ app.post('/api/featured-video', async (req, res) => {
   }
 });
 
+// Featured Images API
+app.get('/api/featured-images', async (req, res) => {
+  try {
+    const images = await FeaturedImage.find({ active: true }).sort({ order: 1, createdAt: -1 });
+    console.log(`📊 Fetched ${images.length} featured images`);
+    res.json(images);
+  } catch (error) {
+    console.error('❌ Error fetching featured images:', error);
+    res.status(500).json({ error: 'Failed to fetch featured images' });
+  }
+});
+
+app.post('/api/featured-images', async (req, res) => {
+  try {
+    const image = new FeaturedImage({
+      ...req.body,
+      active: true,
+      order: req.body.order || 0
+    });
+    await image.save();
+    
+    broadcastUpdate('featured', 'create', image);
+    console.log('✅ Featured image created:', image.title);
+    res.status(201).json(image);
+  } catch (error) {
+    console.error('❌ Error creating featured image:', error);
+    res.status(500).json({ error: 'Failed to create featured image' });
+  }
+});
+
+app.put('/api/featured-images/:id', async (req, res) => {
+  try {
+    const image = await FeaturedImage.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    
+    if (!image) {
+      return res.status(404).json({ error: 'Featured image not found' });
+    }
+    
+    broadcastUpdate('featured', 'update', image);
+    console.log('✅ Featured image updated:', image.title);
+    res.json(image);
+  } catch (error) {
+    console.error('❌ Error updating featured image:', error);
+    res.status(500).json({ error: 'Failed to update featured image' });
+  }
+});
+
+app.delete('/api/featured-images/:id', async (req, res) => {
+  try {
+    const image = await FeaturedImage.findByIdAndDelete(req.params.id);
+    
+    if (!image) {
+      return res.status(404).json({ error: 'Featured image not found' });
+    }
+    
+    broadcastUpdate('featured', 'delete', { id: req.params.id });
+    console.log('✅ Featured image deleted:', image.title);
+    res.json({ message: 'Featured image deleted successfully' });
+  } catch (error) {
+    console.error('❌ Error deleting featured image:', error);
+    res.status(500).json({ error: 'Failed to delete featured image' });
+  }
+});
+
 // Admin Stats API
 app.get('/api/admin/stats', async (req, res) => {
   try {
@@ -626,7 +703,7 @@ const startServer = async () => {
       console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
       console.log(`📱 Android Emulator: http://10.0.2.2:${PORT}/api`);
       console.log(`📱 iOS Simulator: http://localhost:${PORT}/api`);
-      console.log(`📱 Physical Device: http://192.168.173.65:${PORT}/api`);
+      console.log(`📱 Physical Device: http://10.235.174.194:${PORT}/api`);
       console.log(`💡 To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)`);
     });
   } catch (error) {

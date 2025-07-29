@@ -539,7 +539,7 @@ export default function AdminHighlightsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   loadingContainer: {
     flex: 1,
@@ -553,12 +553,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   loadingSubtext: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#E0E7FF',
     textAlign: 'center',
   },
   header: {
@@ -600,13 +600,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     marginTop: 24,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 16,
-    color: '#A855F7',
+    color: '#E0E7FF',
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
@@ -640,8 +640,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sportTag: {
-    backgroundColor: '#A855F7',
-    color: '#FFFFFF',
+    backgroundColor: '#FFFFFF',
+    color: '#8B5CF6',
     fontSize: 12,
     fontWeight: '600',
     paddingHorizontal: 8,

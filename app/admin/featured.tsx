@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { Star, Video, Save, Plus, CreditCard as Edit, Trash2, Check, X, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
+import { Star, Image as ImageIcon, Save, Plus, CreditCard as Edit, Trash2, Check, X, Camera } from 'lucide-react-native';
 import Header from '@/components/Header';
+import ImageCard from '@/components/ImageCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 import { useRouter } from 'expo-router';
@@ -13,7 +14,6 @@ interface FeaturedImage {
   title: string;
   imageUrl: string;
   dateLabel: string;
-  uploadDate: string;
 }
 
 export default function AdminFeaturedScreen() {
@@ -34,8 +34,6 @@ export default function AdminFeaturedScreen() {
     imageUrl: ''
   });
 
-  const dateLabelOptions = ['Today', '1 day ago', '2 days ago', '1 week ago', '2 weeks ago', '1 month ago'];
-
   useEffect(() => {
     fetchFeaturedImages();
   }, []);
@@ -43,42 +41,74 @@ export default function AdminFeaturedScreen() {
   const fetchFeaturedImages = async () => {
     try {
       setLoading(true);
-      // For now, use sample data. In a real implementation, you would fetch from an API
-      const sampleFeaturedImages: FeaturedImage[] = [
+      const response = await apiClient.getFeaturedImages();
+      if (response.data) {
+        const formattedImages = response.data.map(image => ({
+          ...image,
+          id: image._id || image.id,
+          _id: image._id || image.id
+        }));
+        setFeaturedImages(formattedImages);
+        console.log('✅ Fetched featured images:', formattedImages.length);
+      } else {
+        console.error('Failed to fetch featured images:', response.error);
+        // Fallback to local assets
+        const localImages: FeaturedImage[] = [
+          {
+            _id: '1',
+            id: '1',
+            title: 'Latest Match Highlights',
+            imageUrl: require('../../assets/images/b.jpg'),
+            dateLabel: 'Today'
+          },
+          {
+            _id: '2',
+            id: '2',
+            title: 'Weekly Sports Roundup',
+            imageUrl: require('../../assets/images/icon.jpg'),
+            dateLabel: '2 days ago'
+          },
+          {
+            _id: '3',
+            id: '3',
+            title: 'Championship Finals',
+            imageUrl: require('../../assets/images/icono.jpg'),
+            dateLabel: '1 week ago'
+          }
+        ];
+        setFeaturedImages(localImages);
+      }
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      // Fallback to local assets on error
+      const localImages: FeaturedImage[] = [
         {
           _id: '1',
           id: '1',
-          title: 'Championship Finals Tonight',
-          imageUrl: 'https://images.pexels.com/photos/274506/pexels-photo-274506.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: 'Today',
-          uploadDate: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          id: '2',
-          title: 'Player of the Month Award',
-          imageUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: '2 days ago',
-          uploadDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: '3',
-          id: '3',
-          title: 'New Stadium Opening',
-          imageUrl: 'https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: '1 week ago',
-          uploadDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+          title: 'Latest Match Highlights',
+          imageUrl: require('../../assets/images/b.jpg'),
+          dateLabel: 'Today'
         }
       ];
-      setFeaturedImages(sampleFeaturedImages);
-      console.log('✅ Fetched featured images:', sampleFeaturedImages.length);
-    } catch (error) {
-      console.error('Error fetching featured images:', error);
-      Alert.alert('Network Error', 
-        'Unable to load featured images.'
-      );
+      setFeaturedImages(localImages);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setFormData({ ...formData, imageUrl: result.assets[0].uri });
+      if (formErrors.imageUrl) {
+        setFormErrors({ ...formErrors, imageUrl: '' });
+      }
     }
   };
 
@@ -124,52 +154,53 @@ export default function AdminFeaturedScreen() {
       const imageData = {
         title: formData.title.trim(),
         imageUrl: formData.imageUrl.trim(),
-        dateLabel: formData.dateLabel,
-        uploadDate: new Date().toISOString()
+        dateLabel: formData.dateLabel
       };
 
       console.log('📤 Sending image data:', imageData);
+
+      let response;
       
       if (editingImage) {
         console.log('✏️ Updating existing image:', editingImage._id);
-        // Update the existing image in the local state
-        setFeaturedImages(prev => prev.map(img => 
-          img._id === editingImage._id 
-            ? { ...img, ...imageData, id: img.id, _id: img._id }
-            : img
-        ));
+        response = await apiClient.updateFeaturedImage(editingImage._id, imageData);
       } else {
         console.log('➕ Creating new image');
-        // Add new image to the local state
-        const newImage = {
-          ...imageData,
-          _id: Date.now().toString(),
-          id: Date.now().toString()
-        };
-        setFeaturedImages(prev => [newImage, ...prev]);
+        response = await apiClient.createFeaturedImage(imageData);
       }
 
-      console.log('✅ Image saved successfully');
-      
-      triggerUpdate({
-        type: 'featured',
-        action: editingImage ? 'update' : 'create',
-        data: imageData,
-        timestamp: Date.now()
-      });
-      
-      resetForm();
-      setShowModal(false);
-      
-      Alert.alert(
-        'Success!', 
-        `Image "${imageData.title}" has been ${editingImage ? 'updated' : 'added'} successfully!`,
-        [{ text: 'OK', style: 'default' }]
-      );
+      if (response.data) {
+        console.log('✅ Image saved successfully');
+        
+        // Refresh the images list
+        await fetchFeaturedImages();
+        
+        triggerUpdate({
+          type: 'featured',
+          action: editingImage ? 'update' : 'create',
+          data: response.data,
+          timestamp: Date.now()
+        });
+        
+        resetForm();
+        setShowModal(false);
+        
+        Alert.alert(
+          'Success!', 
+          `Image "${imageData.title}" has been ${editingImage ? 'updated' : 'added'} successfully!`,
+          [{ text: 'OK', style: 'default' }]
+        );
+      } else {
+        console.error('❌ API Error:', response.error);
+        Alert.alert(
+          'Save Failed', 
+          response.error || `Failed to ${editingImage ? 'update' : 'add'} image. Please try again.`
+        );
+      }
     } catch (error: any) {
       console.error('❌ Save error:', error);
       Alert.alert(
-        'Network Error', 
+        'Save Error', 
         `Unable to save image. Please try again.\n\nError: ${error.message || 'Unknown error'}`
       );
     } finally {
@@ -191,22 +222,29 @@ export default function AdminFeaturedScreen() {
             try {
               console.log('🗑️ Deleting image:', image._id);
               
-              // Remove from local state
-              setFeaturedImages(prev => prev.filter(img => img._id !== image._id));
+              const response = await apiClient.deleteFeaturedImage(image._id);
+              
+              if (response.status === 200 || response.data) {
+                console.log('✅ Image deleted successfully');
                 
-              console.log('✅ Image deleted successfully');
+                // Refresh the images list
+                await fetchFeaturedImages();
                 
-              triggerUpdate({
-                type: 'featured',
+                triggerUpdate({
+                  type: 'featured',
                   action: 'delete',
-                data: { id: image._id },
+                  data: { id: image._id },
                   timestamp: Date.now()
                 });
                 
-              Alert.alert('Success', 'Image deleted successfully!');
+                Alert.alert('Success', 'Image deleted successfully!');
+              } else {
+                console.error('❌ Delete failed:', response.error);
+                Alert.alert('Delete Failed', response.error || 'Failed to delete image. Please try again.');
+              }
             } catch (error) {
               console.error('❌ Delete error:', error);
-              Alert.alert('Network Error', 'Failed to delete image. Please try again.');
+              Alert.alert('Network Error', 'Failed to delete image. Please check your connection and try again.');
             }
           }
         }
@@ -236,27 +274,12 @@ export default function AdminFeaturedScreen() {
     setShowModal(true);
   };
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setFormData({ ...formData, imageUrl: result.assets[0].uri });
-    }
-  };
-
   const FeaturedImageCard = ({ image }: { image: FeaturedImage }) => (
     <View style={styles.imageCard}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: image.imageUrl }} style={styles.featuredImage} />
-        <View style={styles.imageOverlay}>
-          <Text style={styles.imageTitle} numberOfLines={2}>{image.title}</Text>
-        </View>
-      </View>
+      <ImageCard 
+        image={image}
+        onPress={() => console.log('Image pressed:', image.id)} 
+      />
       <View style={styles.imageMeta}>
         <View style={styles.metaRow}>
           <View style={styles.dateBadge}>
@@ -286,241 +309,273 @@ export default function AdminFeaturedScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header title="Featured Images" showBackButton />
-        <View style={styles.loadingContainer}>
-          <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-          <Text style={styles.loadingText}>Loading...</Text>
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="What's New Content" showBackButton />
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+            <Text style={styles.loadingText}>Loading...</Text>
+          </View>
         </View>
-      </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header title="Featured Images" showBackButton />
-      
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={() => {
-            console.log('➕ Add image button pressed');
-            resetForm();
-            setShowModal(true);
-          }}
-        >
-          <Plus size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Image</Text>
-        </TouchableOpacity>
-      </View>
-      
-      <ScrollView 
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
-      >
-        {/* Current Featured Images */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ImageIcon size={24} color="#F59E0B" />
-            <Text style={styles.sectionTitle}>Featured Images ({featuredImages.length})</Text>
-          </View>
-          
-          {featuredImages.length > 0 ? (
-            featuredImages.map((image) => (
-              <FeaturedImageCard key={image._id} image={image} />
-            ))
-          ) : (
-            <View style={styles.emptyState}>
-              <ImageIcon size={64} color="#D1D5DB" />
-              <Text style={styles.emptyText}>No featured images</Text>
-              <Text style={styles.emptySubtext}>Add your first image to get started!</Text>
-              <TouchableOpacity 
-                style={styles.emptyButton}
-                onPress={() => {
-                  resetForm();
-                  setShowModal(true);
-                }}
-              >
-                <Plus size={20} color="#8B5CF6" />
-                <Text style={styles.emptyButtonText}>Add First Image</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Instructions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Instructions</Text>
-          <View style={styles.instructions}>
-            <Text style={styles.instructionItem}>
-              • Images added here will appear in the "What's New" section on the home screen
-            </Text>
-            <Text style={styles.instructionItem}>
-              • Featured images will be displayed in a horizontal scroll list
-            </Text>
-            <Text style={styles.instructionItem}>
-              • Changes will be reflected immediately across all user devices
-            </Text>
-            <Text style={styles.instructionItem}>
-              • Make sure to use high-quality, engaging images
-            </Text>
-            <Text style={styles.instructionItem}>
-              • Use descriptive titles and appropriate date labels
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
-
-      <Modal 
-        visible={showModal} 
-        animationType="slide" 
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowModal(false)}
-      >
-        <KeyboardAvoidingView 
-          style={styles.modalContainer}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <View style={styles.modalHeader}>
-            <TouchableOpacity 
-              onPress={() => {
-                console.log('❌ Cancel button pressed');
-                setShowModal(false);
-                resetForm();
-              }}
-              style={styles.headerButton}
-            >
-              <X size={20} color="#6B7280" />
-              <Text style={styles.cancelButton}>Cancel</Text>
-            </TouchableOpacity>
-            
-            <Text style={styles.modalTitle}>
-              {editingImage ? 'Edit Image' : 'Add New Image'}
-            </Text>
-            
-            <TouchableOpacity 
-              onPress={handleSave} 
-              disabled={saving}
-              style={[styles.headerButton, saving && styles.headerButtonDisabled]}
-            >
-              {saving ? (
-                <>
-                  <Text style={[styles.saveButton, saving && styles.saveButtonDisabled]}>
-                    Saving...
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Check size={20} color="#8B5CF6" />
-                  <Text style={styles.saveButton}>Save</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView 
-            style={styles.modalContent} 
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={styles.modalContentContainer}
+    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <View style={styles.overlay}>
+        <Header title="What's New Content" showBackButton />
+        
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.addButton}
+            onPress={() => {
+              console.log('➕ Add image button pressed');
+              resetForm();
+              setShowModal(true);
+            }}
           >
-            {/* Title Input */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Image Title *</Text>
-              <TextInput
-                style={[
-                  styles.input,
-                  formErrors.title ? styles.inputError : null
-                ]}
-                value={formData.title}
-                onChangeText={(text) => {
-                  setFormData({ ...formData, title: text });
-                  if (formErrors.title) {
-                    setFormErrors({ ...formErrors, title: '' });
-                  }
-                }}
-                placeholder="Enter a descriptive title for your image"
-                multiline
-                numberOfLines={2}
-                maxLength={200}
-                editable={!saving}
-              />
-              {formErrors.title ? (
-                <Text style={styles.errorText}>{formErrors.title}</Text>
-              ) : (
-                <Text style={styles.helpText}>
-                  {formData.title.length}/200 characters
-                </Text>
-              )}
+            <Plus size={20} color="#8B5CF6" />
+            <Text style={styles.addButtonText}>Add Image</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView 
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Current Featured Images */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Star size={24} color="#F59E0B" />
+              <Text style={styles.sectionTitle}>What's New Images ({featuredImages.length})</Text>
             </View>
-
-            {/* Image Input */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Image *</Text>
-              <TouchableOpacity 
-                style={[
-                  styles.imageButton,
-                  formErrors.imageUrl ? styles.inputError : null
-                ]}
-                onPress={pickImage}
-                disabled={saving}
-              >
-                <Camera size={20} color="#8B5CF6" />
-                <Text style={styles.imageButtonText}>
-                  {formData.imageUrl ? 'Change Image' : 'Select Image'}
-                </Text>
-              </TouchableOpacity>
-              {formData.imageUrl && (
-                <Image source={{ uri: formData.imageUrl }} style={styles.previewImage} />
-              )}
-              {formErrors.imageUrl ? (
-                <Text style={styles.errorText}>{formErrors.imageUrl}</Text>
-              ) : (
-                <Text style={styles.helpText}>
-                  Select a high-quality image for the What's New section
-                </Text>
-              )}
-            </View>
-
-            {/* Date Label Selection */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Date Label</Text>
-              <View style={styles.dateLabelButtons}>
-                {dateLabelOptions.map((dateLabel) => (
-                  <TouchableOpacity
-                    key={dateLabel}
-                    style={[
-                      styles.dateLabelButton,
-                      formData.dateLabel === dateLabel && styles.dateLabelButtonActive
-                    ]}
-                    onPress={() => setFormData({ ...formData, dateLabel })}
-                    disabled={saving}
-                  >
-                    <Text style={[
-                      styles.dateLabelButtonText,
-                      formData.dateLabel === dateLabel && styles.dateLabelButtonTextActive
-                    ]}>
-                      {dateLabel}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+            
+            {featuredImages.length > 0 ? (
+              featuredImages.map((image) => (
+                <FeaturedImageCard key={image._id} image={image} />
+              ))
+            ) : (
+              <View style={styles.emptyState}>
+                <ImageIcon size={64} color="#D1D5DB" />
+                <Text style={styles.emptyText}>No images in What's New</Text>
+                <Text style={styles.emptySubtext}>Add your first image to get started!</Text>
+                <TouchableOpacity 
+                  style={styles.emptyButton}
+                  onPress={() => {
+                    resetForm();
+                    setShowModal(true);
+                  }}
+                >
+                  <Plus size={20} color="#8B5CF6" />
+                  <Text style={styles.emptyButtonText}>Add First Image</Text>
+                </TouchableOpacity>
               </View>
+            )}
+          </View>
+
+          {/* Instructions */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Instructions</Text>
+            <View style={styles.instructions}>
+              <Text style={styles.instructionItem}>
+                • Images added here will appear in the "What's New" section on the home screen
+              </Text>
+              <Text style={styles.instructionItem}>
+                • Images will be displayed in a horizontal scroll list
+              </Text>
+              <Text style={styles.instructionItem}>
+                • Changes will be reflected immediately across all user devices
+              </Text>
+              <Text style={styles.instructionItem}>
+                • Make sure to use high-quality, engaging images
+              </Text>
+              <Text style={styles.instructionItem}>
+                • Use descriptive titles and appropriate date labels
+              </Text>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </Modal>
-    </View>
+          </View>
+        </ScrollView>
+
+        <Modal 
+          visible={showModal} 
+          animationType="slide" 
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowModal(false)}
+        >
+          <KeyboardAvoidingView 
+            style={styles.modalContainer}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          >
+            <View style={styles.modalHeader}>
+              <TouchableOpacity 
+                onPress={() => {
+                  console.log('❌ Cancel button pressed');
+                  setShowModal(false);
+                  resetForm();
+                }}
+                style={styles.headerButton}
+              >
+                <X size={20} color="#6B7280" />
+                <Text style={styles.cancelButton}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <Text style={styles.modalTitle}>
+                {editingImage ? 'Edit Image' : 'Add New Image'}
+              </Text>
+              
+              <TouchableOpacity 
+                onPress={handleSave} 
+                disabled={saving}
+                style={[styles.headerButton, saving && styles.headerButtonDisabled]}
+              >
+                {saving ? (
+                  <>
+                    <Text style={[styles.saveButton, saving && styles.saveButtonDisabled]}>
+                      Saving...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Check size={20} color="#8B5CF6" />
+                    <Text style={styles.saveButton}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView 
+              style={styles.modalContent} 
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={styles.modalContentContainer}
+            >
+              {/* Title Input */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Image Title *</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    formErrors.title ? styles.inputError : null
+                  ]}
+                  value={formData.title}
+                  onChangeText={(text) => {
+                    setFormData({ ...formData, title: text });
+                    if (formErrors.title) {
+                      setFormErrors({ ...formErrors, title: '' });
+                    }
+                  }}
+                  placeholder="Enter a descriptive title for your image"
+                  multiline
+                  numberOfLines={2}
+                  maxLength={200}
+                  editable={!saving}
+                />
+                {formErrors.title ? (
+                  <Text style={styles.errorText}>{formErrors.title}</Text>
+                ) : (
+                  <Text style={styles.helpText}>
+                    {formData.title.length}/200 characters
+                  </Text>
+                )}
+              </View>
+
+              {/* Image Selection */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Select Image *</Text>
+                <TouchableOpacity 
+                  style={[
+                    styles.imageButton,
+                    formErrors.imageUrl ? styles.inputError : null
+                  ]}
+                  onPress={pickImage}
+                  disabled={saving}
+                >
+                  <Camera size={24} color="#8B5CF6" />
+                  <Text style={styles.imageButtonText}>
+                    {formData.imageUrl ? 'Change Image' : 'Select Image'}
+                  </Text>
+                </TouchableOpacity>
+                {formErrors.imageUrl ? (
+                  <Text style={styles.errorText}>{formErrors.imageUrl}</Text>
+                ) : (
+                  <Text style={styles.helpText}>
+                    Tap to select an image from your device
+                  </Text>
+                )}
+              </View>
+
+              {/* Date Label Selection */}
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Date Label</Text>
+                <View style={styles.dateLabelButtons}>
+                  {[
+                    'Today',
+                    '1 day ago',
+                    '2 days ago',
+                    '1 week ago',
+                    '2 weeks ago',
+                    '1 month ago'
+                  ].map((dateLabel) => (
+                    <TouchableOpacity
+                      key={dateLabel}
+                      style={[
+                        styles.dateLabelButton,
+                        formData.dateLabel === dateLabel && styles.dateLabelButtonActive
+                      ]}
+                      onPress={() => setFormData({ ...formData, dateLabel })}
+                      disabled={saving}
+                    >
+                      <Text style={[
+                        styles.dateLabelButtonText,
+                        formData.dateLabel === dateLabel && styles.dateLabelButtonTextActive
+                      ]}>
+                        {dateLabel}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Preview Section */}
+              {formData.imageUrl && (
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Preview</Text>
+                  <View style={styles.previewContainer}>
+                    <ImageCard
+                      image={{
+                        id: 'preview',
+                        title: formData.title || 'Preview Title',
+                        imageUrl: formData.imageUrl,
+                        dateLabel: formData.dateLabel
+                      }}
+                      onPress={() => {}}
+                    />
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Modal>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -530,14 +585,14 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
   },
   header: {
     padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#8B5CF6',
   },
   addButton: {
     backgroundColor: '#FFFFFF',
@@ -564,11 +619,13 @@ const styles = StyleSheet.create({
     margin: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.3,
     shadowRadius: 12,
     elevation: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -593,13 +650,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#E0E7FF',
+    color: '#FFFFFF',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#E0E7FF',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 20,
@@ -623,44 +680,17 @@ const styles = StyleSheet.create({
   imageCard: {
     marginBottom: 16,
   },
-  imageContainer: {
-    position: 'relative',
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginBottom: 12,
-  },
-  featuredImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 12,
-  },
-  imageTitle: {
-    fontSize: 16,
-    fontFamily: 'Cocogoose',
-    fontWeight: 'bold',
-    fontStyle: 'italic',
-    color: '#FFFFFF',
-    lineHeight: 20,
-  },
   imageMeta: {
     paddingTop: 12,
   },
   metaRow: {
     flexDirection: 'row',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 12,
   },
   dateBadge: {
-    backgroundColor: '#A855F7',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -779,6 +809,23 @@ const styles = StyleSheet.create({
     minHeight: 48,
     textAlignVertical: 'top',
   },
+  imageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 20,
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+  },
+  imageButtonText: {
+    color: '#8B5CF6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   inputError: {
     borderColor: '#EF4444',
     borderWidth: 2,
@@ -793,30 +840,6 @@ const styles = StyleSheet.create({
     color: '#EF4444',
     marginTop: 6,
     fontWeight: '500',
-  },
-  imageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#8B5CF6',
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 20,
-    gap: 8,
-    backgroundColor: '#FFFFFF',
-  },
-  imageButtonText: {
-    color: '#8B5CF6',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  previewImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 12,
-    marginTop: 12,
-    resizeMode: 'cover',
   },
   dateLabelButtons: {
     flexDirection: 'row',
@@ -843,5 +866,10 @@ const styles = StyleSheet.create({
   dateLabelButtonTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
+  },
+  previewContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 12,
+    overflow: 'hidden',
   },
 });

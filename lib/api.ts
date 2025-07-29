@@ -229,6 +229,31 @@ class ApiClient {
     });
   }
 
+  // Featured Images API
+  async getFeaturedImages() {
+    return this.request<any[]>('/featured-images');
+  }
+
+  async createFeaturedImage(data: any) {
+    return this.request<any>('/featured-images', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateFeaturedImage(id: string, data: any) {
+    return this.request<any>(`/featured-images/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFeaturedImage(id: string) {
+    return this.request<any>(`/featured-images/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Admin API
   async getAdminStats() {
     return this.request<any>('/admin/stats');

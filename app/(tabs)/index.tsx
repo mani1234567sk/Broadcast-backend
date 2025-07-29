@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, FlatList, TouchableOpacity, ImageBackground, Image } from 'react-native';
 import Header from '@/components/Header';
-import VideoPlayer from '@/components/VideoPlayer';
-import VideoCard from '@/components/VideoCard';
+import ImageCard from '@/components/ImageCard';
 import MatchCard from '@/components/MatchCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Play, Radio, Clock, CircleCheck as CheckCircle } from 'lucide-react-native';
@@ -22,12 +21,10 @@ interface Match {
 }
 
 interface FeaturedImage {
-  _id: string;
   id: string;
   title: string;
   imageUrl: string;
   dateLabel: string;
-  uploadDate: string;
 }
 
 export default function HomeScreen() {
@@ -70,78 +67,39 @@ export default function HomeScreen() {
         return;
       }
 
-      // Fetch videos for What's New section
-      // For now, we'll use sample featured images data
-      // In a real implementation, you would fetch from a featured images API
-      const sampleFeaturedImages: FeaturedImage[] = [
-        {
-          _id: '1',
-          id: '1',
-          title: 'Championship Finals Tonight',
-          imageUrl: 'https://images.pexels.com/photos/274506/pexels-photo-274506.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: 'Today',
-          uploadDate: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          id: '2',
-          title: 'Player of the Month Award',
-          imageUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: '2 days ago',
-          uploadDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: '3',
-          id: '3',
-          title: 'New Stadium Opening',
-          imageUrl: 'https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: '1 week ago',
-          uploadDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: '4',
-          id: '4',
-          title: 'Season Highlights Recap',
-          imageUrl: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: '2 weeks ago',
-          uploadDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          _id: '5',
-          id: '5',
-          title: 'Training Camp Updates',
-          imageUrl: 'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg?auto=compress&cs=tinysrgb&w=800',
-          dateLabel: '1 month ago',
-          uploadDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      setWhatsNewImages(sampleFeaturedImages);
-
-      // Keep the existing video logic for fallback
-      const videosResponse = await apiClient.getVideos();
-      if (videosResponse.data && sampleFeaturedImages.length === 0) {
-        // Only use videos if no featured images are available
-        const recentVideos = videosResponse.data.slice(0, 3).map((video, index) => {
-          let dateLabel = 'New';
-          if (index === 1) dateLabel = '2 days ago';
-          else if (index === 2) dateLabel = '1 week ago';
-          
-          return {
-            ...video,
-            dateLabel,
-            id: video._id || video.id,
-            _id: video._id || video.id
-          };
-        });
-        // Convert videos to image format for display
-        setWhatsNewImages(recentVideos.map(video => ({
-          _id: video._id,
-          id: video.id,
-          title: video.title,
-          imageUrl: video.thumbnailUrl,
-          dateLabel: video.dateLabel,
-          uploadDate: video.uploadDate || new Date().toISOString()
-        })));
+      // Fetch featured images from backend
+      const imagesResponse = await apiClient.getFeaturedImages();
+      if (imagesResponse.data && imagesResponse.data.length > 0) {
+        const formattedImages = imagesResponse.data.map(image => ({
+          id: image._id || image.id,
+          title: image.title,
+          imageUrl: image.imageUrl,
+          dateLabel: image.dateLabel
+        }));
+        setWhatsNewImages(formattedImages);
+      } else {
+        // Fallback to local assets when no backend data
+        const localWhatsNew: FeaturedImage[] = [
+          {
+            id: '1',
+            title: 'Latest Match Highlights',
+            imageUrl: require('../../assets/images/b.jpg'),
+            dateLabel: 'Today'
+          },
+          {
+            id: '2',
+            title: 'Weekly Sports Roundup',
+            imageUrl: require('../../assets/images/icon.jpg'),
+            dateLabel: '2 days ago'
+          },
+          {
+            id: '3',
+            title: 'Championship Finals',
+            imageUrl: require('../../assets/images/icono.jpg'),
+            dateLabel: '1 week ago'
+          }
+        ];
+        setWhatsNewImages(localWhatsNew);
       }
 
       // Fetch matches
@@ -213,7 +171,7 @@ export default function HomeScreen() {
   };
 
   const handleImagePress = (imageId: string) => {
-    // For now, just show an alert. In a real app, you might navigate to an image detail view
+    // For now, just show an alert since we're only displaying images
     console.log('Image pressed:', imageId);
   };
 
@@ -236,31 +194,17 @@ export default function HomeScreen() {
   );
 
   const renderWhatsNewItem = ({ item }: { item: FeaturedImage }) => (
-    <TouchableOpacity style={styles.whatsNewItem} onPress={() => handleImagePress(item.id)}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
-        <View style={styles.imageOverlay}>
-          <Text style={styles.imageTitle} numberOfLines={2}>{item.title}</Text>
-        </View>
-      </View>
+    <View style={styles.whatsNewItem}>
+      <TouchableOpacity onPress={() => handleImagePress(item.id)}>
+        <ImageCard
+          image={item}
+          onPress={() => handleImagePress(item.id)}
+        />
+      </TouchableOpacity>
       <View style={styles.dateLabel}>
         <Text style={styles.dateLabelText}>{item.dateLabel}</Text>
       </View>
-    </TouchableOpacity>
-  );
-
-  const FeaturedImageCard = ({ image }: { image: FeaturedImage }) => (
-    <TouchableOpacity style={styles.whatsNewItem} onPress={() => handleImagePress(image.id)}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: image.imageUrl }} style={styles.featuredImage} />
-        <View style={styles.imageOverlay}>
-          <Text style={styles.imageTitle} numberOfLines={2}>{image.title}</Text>
-        </View>
-      </View>
-      <View style={styles.dateLabel}>
-        <Text style={styles.dateLabelText}>{image.dateLabel}</Text>
-      </View>
-    </TouchableOpacity>
+    </View>
   );
 
   const MatchSection = ({ 
@@ -298,116 +242,128 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header title="LIVE TV" />
-        <View style={styles.loadingContainer}>
-          <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-          {connectionStatus === 'checking' && (
-            <Text style={styles.connectionText}>Checking server connection...</Text>
-          )}
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="LIVE TV" />
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+            {connectionStatus === 'checking' && (
+              <Text style={styles.connectionText}>Checking server connection...</Text>
+            )}
+          </View>
         </View>
-      </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header title="LIVE TV" />
-      
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Connection Status */}
-        {connectionStatus === 'disconnected' && (
-          <View style={styles.connectionError}>
-            <Text style={styles.connectionErrorText}>
-              ⚠️ Backend server disconnected. Some features may not work properly.
-            </Text>
-          </View>
-        )}
-
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Text style={styles.errorHint}>
-              Make sure the backend server is running: npm run server
-            </Text>
-          </View>
-        )}
-
-        {/* What's New Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Play size={24} color="#FFFFFF" />
-            <Text style={styles.sectionTitle}>What's New</Text>
-          </View>
-          
-          {whatsNewImages.length > 0 ? (
-            <FlatList
-              horizontal
-              data={whatsNewImages}
-              keyExtractor={(item) => item.id}
-              renderItem={renderWhatsNewItem}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.whatsNewList}
-            />
-          ) : (
-            <View style={styles.emptyWhatsNew}>
-              <Text style={styles.emptyText}>No featured images available</Text>
+    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <View style={styles.overlay}>
+        <Header title="LIVE TV" />
+        
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Connection Status */}
+          {connectionStatus === 'disconnected' && (
+            <View style={styles.connectionError}>
+              <Text style={styles.connectionErrorText}>
+                ⚠️ Backend server disconnected. Some features may not work properly.
+              </Text>
             </View>
           )}
-        </View>
 
-        {/* Live Matches Section */}
-        <MatchSection 
-          title="Live" 
-          matches={liveMatches} 
-          icon={Radio} 
-          iconColor="#EF4444" 
-        />
-
-        {/* Upcoming Matches Section */}
-        <MatchSection 
-          title="Upcoming" 
-          matches={upcomingMatches} 
-          icon={Clock} 
-          iconColor="#F59E0B" 
-        />
-
-        {/* Completed Matches Section */}
-        <MatchSection 
-          title="Completed" 
-          matches={completedMatches} 
-          icon={CheckCircle} 
-          iconColor="#10B981" 
-        />
-
-        {/* Show empty state only if no matches at all */}
-        {matches.length === 0 && (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No matches available</Text>
-            {connectionStatus === 'disconnected' && (
-              <Text style={styles.emptyHint}>
-                Connect to the backend to see live data
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <Text style={styles.errorHint}>
+                Make sure the backend server is running: npm run server
               </Text>
+            </View>
+          )}
+
+          {/* What's New Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Play size={24} color="#FFFFFF" />
+              <Text style={styles.sectionTitle}>What's New</Text>
+            </View>
+            
+            {whatsNewImages.length > 0 ? (
+              <FlatList
+                horizontal
+                data={whatsNewImages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderWhatsNewItem}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.whatsNewList}
+              />
+            ) : (
+              <View style={styles.emptyWhatsNew}>
+                <Text style={styles.emptyText}>No new content available</Text>
+              </View>
             )}
           </View>
-        )}
-      </ScrollView>
-    </View>
+
+          {/* Live Matches Section */}
+          <MatchSection 
+            title="Live" 
+            matches={liveMatches} 
+            icon={Radio} 
+            iconColor="#EF4444" 
+          />
+
+          {/* Upcoming Matches Section */}
+          <MatchSection 
+            title="Upcoming" 
+            matches={upcomingMatches} 
+            icon={Clock} 
+            iconColor="#F59E0B" 
+          />
+
+          {/* Completed Matches Section */}
+          <MatchSection 
+            title="Completed" 
+            matches={completedMatches} 
+            icon={CheckCircle} 
+            iconColor="#10B981" 
+          />
+
+          {/* Show empty state only if no matches at all */}
+          {matches.length === 0 && (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyText}>No matches available</Text>
+              {connectionStatus === 'disconnected' && (
+                <Text style={styles.emptyHint}>
+                  Connect to the backend to see live data
+                </Text>
+              )}
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -417,12 +373,12 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#6B7280',
     marginBottom: 8,
   },
   connectionText: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: '#522e8e',
   },
   connectionError: {
     backgroundColor: '#FEF3C7',
@@ -433,26 +389,26 @@ const styles = StyleSheet.create({
     borderLeftColor: '#F59E0B',
   },
   connectionErrorText: {
-    color: '#92400E',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
   },
   errorContainer: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#8B5CF6',
     margin: 16,
     padding: 12,
     borderRadius: 8,
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    borderLeftColor: '#FFFFFF',
   },
   errorText: {
-    color: '#DC2626',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 4,
   },
   errorHint: {
-    color: '#7F1D1D',
+    color: '#E0E7FF',
     fontSize: 12,
     fontStyle: 'italic',
   },
@@ -472,11 +428,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
   },
   sectionCount: {
     fontSize: 16,
-    color: '#A855F7',
+    color: '#E0E7FF',
     fontWeight: '600',
     marginLeft: 4,
   },
@@ -493,13 +449,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#6B7280',
     textAlign: 'center',
     marginBottom: 8,
   },
   emptyHint: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#9CA3AF',
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -509,45 +465,17 @@ const styles = StyleSheet.create({
   whatsNewItem: {
     width: 280,
     marginRight: 16,
-  },
-  imageContainer: {
     position: 'relative',
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#8B5CF6',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  featuredImage: {
-    width: '100%',
-    height: 160,
-    resizeMode: 'cover',
-  },
-  imageOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    padding: 12,
-  },
-  imageTitle: {
-    fontSize: 14,
-    fontFamily: 'Cocogoose',
-    fontWeight: 'bold',
-    fontStyle: 'italic',
-    color: '#FFFFFF',
-    lineHeight: 18,
   },
   dateLabel: {
-    marginTop: 8,
+    position: 'absolute',
+    top: 12,
+    right: 12,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    alignSelf: 'flex-start',
+    zIndex: 10,
   },
   dateLabelText: {
     color: '#FFFFFF',

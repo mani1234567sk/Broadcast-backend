@@ -255,7 +255,7 @@ export default function AdminLeaguesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   header: {
     padding: 16,
@@ -282,18 +282,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   leagueCard: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
     marginVertical: 8,
     borderRadius: 16,
     padding: 16,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#6B46C1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
     borderLeftWidth: 4,
-    borderLeftColor: '#A855F7',
+    borderLeftColor: '#8B5CF6',
   },
   leagueHeader: {
     flexDirection: 'row',
@@ -323,17 +323,17 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#6B46C1',
     marginBottom: 4,
   },
   leagueSeason: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: '#6B7280',
     marginBottom: 2,
   },
   matchCount: {
     fontSize: 12,
-    color: '#A855F7',
+    color: '#8B5CF6',
     fontWeight: '600',
   },
   leagueActions: {

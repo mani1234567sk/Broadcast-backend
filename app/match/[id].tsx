@@ -201,7 +201,7 @@ export default function MatchDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#522e8e',
   },
   content: {
     flex: 1,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
@@ -225,10 +225,10 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   matchHeader: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#FFFFFF',
     padding: 20,
     marginBottom: 16,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#522e8e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#E0E7FF',
+    color: '#6B7280',
   },
   teamsContainer: {
     flexDirection: 'row',
@@ -261,14 +261,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
     flex: 1,
     textAlign: 'center',
   },
   vsText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#A855F7',
+    color: '#522e8e',
     marginHorizontal: 16,
   },
   matchInfo: {
@@ -281,15 +281,15 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 16,
-    color: '#E0E7FF',
+    color: '#6B7280',
   },
   section: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#FFFFFF',
     marginBottom: 16,
     marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
-    shadowColor: '#8B5CF6',
+    shadowColor: '#522e8e',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
     marginBottom: 16,
   },
   statsContainer: {
@@ -309,18 +309,18 @@ const styles = StyleSheet.create({
   },
   teamStatsCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     padding: 16,
     borderLeftWidth: 4,
-    borderLeftColor: '#A855F7',
+    borderLeftColor: '#522e8e',
   },
   teamName: {
     fontSize: 16,
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -336,11 +336,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
   },
   statLabel: {
     fontSize: 12,
-    color: '#E0E7FF',
+    color: '#6B7280',
     marginTop: 4,
   },
   playersContainer: {
@@ -355,7 +355,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#FFFFFF',
+    color: '#522e8e',
     marginBottom: 12,
   },
   playerItem: {
@@ -366,6 +366,6 @@ const styles = StyleSheet.create({
   },
   playerName: {
     fontSize: 14,
-    color: '#E0E7FF',
+    color: '#6B7280',
   },
 });

@@ -98,12 +98,21 @@ const featuredContentSchema = new mongoose.Schema({
   active: { type: Boolean, default: true }
 }, { timestamps: true });
 
+const featuredImageSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  imageUrl: { type: String, required: true },
+  dateLabel: { type: String, required: true },
+  active: { type: Boolean, default: true },
+  order: { type: Number, default: 0 }
+}, { timestamps: true });
+
 // Models
 export const Match = mongoose.models.Match || mongoose.model('Match', matchSchema);
 export const League = mongoose.models.League || mongoose.model('League', leagueSchema);
 export const Video = mongoose.models.Video || mongoose.model('Video', videoSchema);
 export const Highlight = mongoose.models.Highlight || mongoose.model('Highlight', highlightSchema);
 export const FeaturedContent = mongoose.models.FeaturedContent || mongoose.model('FeaturedContent', featuredContentSchema);
+export const FeaturedImage = mongoose.models.FeaturedImage || mongoose.model('FeaturedImage', featuredImageSchema);
 
 // Export interfaces for TypeScript
 export interface MatchDocument {
@@ -176,6 +185,17 @@ export interface FeaturedContentDocument {
   videoId?: string;
   title: string;
   active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface FeaturedImageDocument {
+  _id: string;
+  title: string;
+  imageUrl: string;
+  dateLabel: string;
+  active: boolean;
+  order: number;
   createdAt: Date;
   updatedAt: Date;
 }

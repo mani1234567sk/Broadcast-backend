@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, FlatList, ImageBackground } from 'react-native';
 import { Play, Filter, Video as VideoIcon } from 'lucide-react-native';
 import Header from '@/components/Header';
 import VideoCard from '@/components/VideoCard';
@@ -123,7 +123,13 @@ export default function VideosScreen() {
   }, [selectedCategory, videos]);
 
   const handleVideoPress = (videoId: string) => {
-    router.push(`/video/${videoId}`);
+    // Use the actual video ID from the data
+    const video = videos.find(v => v.id === videoId);
+    if (video) {
+      router.push(`/video/${video._id}`);
+    } else {
+      console.error('Video not found:', videoId);
+    }
   };
 
   const handleCategoryFilter = (category: string) => {
@@ -148,87 +154,99 @@ export default function VideosScreen() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <Header title="LIVE TV" />
-        <View style={styles.loadingContainer}>
-          <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="LIVE TV" />
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+          </View>
         </View>
-      </View>
+      </ImageBackground>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Header title="LIVE TV" />
-      
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Show all categories with horizontal lists */}
-        {categories.slice(1).map((category) => {
-          const categoryVideos = videos.filter(video => video.category === category);
-          if (categoryVideos.length === 0) return null;
-          
-          return (
-            <View key={category} style={styles.categorySection}>
-              <Text style={styles.categoryTitle}>
-                {getCategoryIcon(category)} {category}
-              </Text>
-              
-              <FlatList
-                horizontal
-                data={categoryVideos}
-                keyExtractor={(item) => item.id}
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-                renderItem={({item}) => (
-                  <View style={styles.horizontalVideoItem}>
-                    <VideoCard
-                      video={{
-                        id: item.id,
-                        title: item.title,
-                        thumbnailUrl: item.thumbnailUrl,
-                        duration: item.duration,
-                        uploadDate: item.uploadDate,
-                        videoId: item.videoId
-                      }}
-                      onPress={() => handleVideoPress(item.id)}
-                    />
-                    <Text style={styles.viewCount}>
-                      {item.views.toLocaleString()} views
-                    </Text>
-                  </View>
-                )}
-              />
-            </View>
-          );
-        })}
+    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <View style={styles.overlay}>
+        <Header title="LIVE TV" />
         
-        {/* Show empty state if no videos */}
-        {videos.length === 0 && (
-          <View style={styles.emptyState}>
-            <VideoIcon size={64} color="#D1D5DB" />
-            <Text style={styles.emptyText}>No videos available</Text>
-            <Text style={styles.emptySubtext}>
-              Check back later for new content!
-            </Text>
-          </View>
-        )}
-      </ScrollView>
-    </View>
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {/* Show all categories with horizontal lists */}
+          {categories.slice(1).map((category) => {
+            const categoryVideos = videos.filter(video => video.category === category);
+            if (categoryVideos.length === 0) return null;
+            
+            return (
+              <View key={category} style={styles.categorySection}>
+                <Text style={styles.categoryTitle}>
+                  {getCategoryIcon(category)} {category}
+                </Text>
+                
+                <FlatList
+                  horizontal
+                  data={categoryVideos}
+                  keyExtractor={(item) => item.id}
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.horizontalList}
+                  renderItem={({item}) => (
+                    <View style={styles.horizontalVideoItem}>
+                      <VideoCard
+                        video={{
+                          id: item.id,
+                          title: item.title,
+                          thumbnailUrl: item.thumbnailUrl,
+                          duration: item.duration,
+                          uploadDate: item.uploadDate,
+                          videoId: item.videoId
+                        }}
+                        onPress={() => handleVideoPress(item.id)}
+                      />
+                      <Text style={styles.viewCount}>
+                        {item.views.toLocaleString()} views
+                      </Text>
+                    </View>
+                  )}
+                />
+              </View>
+            );
+          })}
+          
+          {/* Show empty state if no videos */}
+          {videos.length === 0 && (
+            <View style={styles.emptyState}>
+              <VideoIcon size={64} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No videos available</Text>
+              <Text style={styles.emptySubtext}>
+                Check back later for new content!
+              </Text>
+            </View>
+          )}
+        </ScrollView>
+      </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   content: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 100,
   },
   loadingContainer: {
     flex: 1,
@@ -248,7 +266,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     paddingHorizontal: 16,
     marginBottom: 12,
   },
@@ -260,7 +278,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   viewCount: {
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     fontSize: 12,
     opacity: 0.8,
     textAlign: 'center',
@@ -276,14 +294,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Cocogoose',
     fontWeight: 'bold',
     fontStyle: 'italic',
-    color: '#8B5CF6',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#A855F7',
+    color: '#E0E7FF',
     textAlign: 'center',
     opacity: 0.8,
   },
