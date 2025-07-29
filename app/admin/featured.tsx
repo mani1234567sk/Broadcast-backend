@@ -1,104 +1,89 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { Star, Video, Save, Plus, CreditCard as Edit, Trash2, Check, X } from 'lucide-react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput, Alert, Modal, KeyboardAvoidingView, Platform, Image } from 'react-native';
+import { Star, Video, Save, Plus, CreditCard as Edit, Trash2, Check, X, Camera, Image as ImageIcon } from 'lucide-react-native';
 import Header from '@/components/Header';
-import VideoPlayer from '@/components/VideoPlayer';
-import VideoCard from '@/components/VideoCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { useRealTimeUpdates } from '@/hooks/useRealTimeUpdates';
 import { useRouter } from 'expo-router';
-import apiClient from '@/lib/api';
+import * as ImagePicker from 'expo-image-picker';
 
-interface FeaturedVideo {
+interface FeaturedImage {
   _id: string;
   id: string;
   title: string;
-  youtubeUrl: string;
-  videoId: string;
-  thumbnailUrl: string;
-  duration?: string;
-  category: 'Sport' | 'Podcast' | 'TV Show' | 'Other';
+  imageUrl: string;
+  dateLabel: string;
   uploadDate: string;
-  views?: number;
 }
 
 export default function AdminFeaturedScreen() {
   const router = useRouter();
   const { triggerUpdate } = useRealTimeUpdates();
-  const [featuredVideos, setFeaturedVideos] = useState<FeaturedVideo[]>([]);
+  const [featuredImages, setFeaturedImages] = useState<FeaturedImage[]>([]);
   const [showModal, setShowModal] = useState(false);
-  const [editingVideo, setEditingVideo] = useState<FeaturedVideo | null>(null);
+  const [editingImage, setEditingImage] = useState<FeaturedImage | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    youtubeUrl: '',
-    category: 'Sport' as 'Sport' | 'Podcast' | 'TV Show' | 'Other'
+    imageUrl: '',
+    dateLabel: 'Today'
   });
   const [formErrors, setFormErrors] = useState({
     title: '',
-    youtubeUrl: ''
+    imageUrl: ''
   });
 
+  const dateLabelOptions = ['Today', '1 day ago', '2 days ago', '1 week ago', '2 weeks ago', '1 month ago'];
+
   useEffect(() => {
-    fetchFeaturedVideos();
+    fetchFeaturedImages();
   }, []);
 
-  const fetchFeaturedVideos = async () => {
+  const fetchFeaturedImages = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getVideos();
-      if (response.data) {
-        // Get the first 5 videos for the What's New section
-        const formattedVideos = response.data.slice(0, 5).map(video => ({
-          ...video,
-          id: video._id || video.id,
-          _id: video._id || video.id
-        }));
-        setFeaturedVideos(formattedVideos);
-        console.log('✅ Fetched featured videos:', formattedVideos.length);
-      } else {
-        console.error('Failed to fetch videos:', response.error);
-        Alert.alert('Connection Error', 
-          `Failed to fetch videos: ${response.error}\n\nMake sure the backend server is running on port 3001.`
-        );
-      }
+      // For now, use sample data. In a real implementation, you would fetch from an API
+      const sampleFeaturedImages: FeaturedImage[] = [
+        {
+          _id: '1',
+          id: '1',
+          title: 'Championship Finals Tonight',
+          imageUrl: 'https://images.pexels.com/photos/274506/pexels-photo-274506.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: 'Today',
+          uploadDate: new Date().toISOString()
+        },
+        {
+          _id: '2',
+          id: '2',
+          title: 'Player of the Month Award',
+          imageUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: '2 days ago',
+          uploadDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          _id: '3',
+          id: '3',
+          title: 'New Stadium Opening',
+          imageUrl: 'https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: '1 week ago',
+          uploadDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+      setFeaturedImages(sampleFeaturedImages);
+      console.log('✅ Fetched featured images:', sampleFeaturedImages.length);
     } catch (error) {
-      console.error('Error fetching videos:', error);
+      console.error('Error fetching featured images:', error);
       Alert.alert('Network Error', 
-        'Unable to connect to the server. Please ensure the backend server is running.'
+        'Unable to load featured images.'
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const extractVideoId = (url: string): string => {
-    if (!url) return '';
-    
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=)([^&\n?#]+)/,
-      /(?:youtu\.be\/)([^&\n?#]+)/,
-      /(?:youtube\.com\/embed\/)([^&\n?#]+)/,
-      /(?:youtube\.com\/v\/)([^&\n?#]+)/
-    ];
-    
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-    
-    return '';
-  };
-
-  const generateThumbnail = (videoId: string): string => {
-    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
-  };
-
   const validateForm = (): boolean => {
-    const errors = { title: '', youtubeUrl: '' };
+    const errors = { title: '', imageUrl: '' };
     let isValid = true;
 
     if (!formData.title.trim()) {
@@ -112,15 +97,9 @@ export default function AdminFeaturedScreen() {
       isValid = false;
     }
 
-    if (!formData.youtubeUrl.trim()) {
-      errors.youtubeUrl = 'YouTube URL is required';
+    if (!formData.imageUrl.trim()) {
+      errors.imageUrl = 'Image is required';
       isValid = false;
-    } else {
-      const videoId = extractVideoId(formData.youtubeUrl);
-      if (!videoId) {
-        errors.youtubeUrl = 'Invalid YouTube URL format';
-        isValid = false;
-      }
     }
 
     setFormErrors(errors);
@@ -128,9 +107,9 @@ export default function AdminFeaturedScreen() {
   };
 
   const handleSave = async () => {
-    console.log('🔄 Save featured video button pressed');
+    console.log('🔄 Save featured image button pressed');
     
-    setFormErrors({ title: '', youtubeUrl: '' });
+    setFormErrors({ title: '', imageUrl: '' });
     
     if (!validateForm()) {
       console.log('❌ Form validation failed');
@@ -142,63 +121,56 @@ export default function AdminFeaturedScreen() {
     console.log('💾 Starting save process...');
     
     try {
-      const videoId = extractVideoId(formData.youtubeUrl);
-      console.log('📹 Extracted video ID:', videoId);
-      
-      const videoData = {
+      const imageData = {
         title: formData.title.trim(),
-        youtubeUrl: formData.youtubeUrl.trim(),
-        videoId,
-        thumbnailUrl: generateThumbnail(videoId),
-        category: formData.category
+        imageUrl: formData.imageUrl.trim(),
+        dateLabel: formData.dateLabel,
+        uploadDate: new Date().toISOString()
       };
 
-      console.log('📤 Sending video data:', videoData);
-
-      let response;
+      console.log('📤 Sending image data:', imageData);
       
-      if (editingVideo) {
-        console.log('✏️ Updating existing video:', editingVideo._id);
-        response = await apiClient.updateVideo(editingVideo._id, videoData);
+      if (editingImage) {
+        console.log('✏️ Updating existing image:', editingImage._id);
+        // Update the existing image in the local state
+        setFeaturedImages(prev => prev.map(img => 
+          img._id === editingImage._id 
+            ? { ...img, ...imageData, id: img.id, _id: img._id }
+            : img
+        ));
       } else {
-        console.log('➕ Creating new video');
-        response = await apiClient.createVideo(videoData);
+        console.log('➕ Creating new image');
+        // Add new image to the local state
+        const newImage = {
+          ...imageData,
+          _id: Date.now().toString(),
+          id: Date.now().toString()
+        };
+        setFeaturedImages(prev => [newImage, ...prev]);
       }
 
-      console.log('📥 API Response:', response);
-
-      if (response.data) {
-        console.log('✅ Video saved successfully');
-        
-        await fetchFeaturedVideos();
-        
-        triggerUpdate({
-          type: 'video',
-          action: editingVideo ? 'update' : 'create',
-          data: response.data,
-          timestamp: Date.now()
-        });
-        
-        resetForm();
-        setShowModal(false);
-        
-        Alert.alert(
-          'Success!', 
-          `Video "${videoData.title}" has been ${editingVideo ? 'updated' : 'added'} successfully!`,
-          [{ text: 'OK', style: 'default' }]
-        );
-      } else {
-        console.error('❌ API Error:', response.error);
-        Alert.alert(
-          'Save Failed', 
-          response.error || `Failed to ${editingVideo ? 'update' : 'add'} video. Please try again.`
-        );
-      }
+      console.log('✅ Image saved successfully');
+      
+      triggerUpdate({
+        type: 'featured',
+        action: editingImage ? 'update' : 'create',
+        data: imageData,
+        timestamp: Date.now()
+      });
+      
+      resetForm();
+      setShowModal(false);
+      
+      Alert.alert(
+        'Success!', 
+        `Image "${imageData.title}" has been ${editingImage ? 'updated' : 'added'} successfully!`,
+        [{ text: 'OK', style: 'default' }]
+      );
     } catch (error: any) {
       console.error('❌ Save error:', error);
       Alert.alert(
         'Network Error', 
-        `Unable to save video. Please check your connection and try again.\n\nError: ${error.message || 'Unknown error'}`
+        `Unable to save image. Please try again.\n\nError: ${error.message || 'Unknown error'}`
       );
     } finally {
       setSaving(false);
@@ -206,10 +178,10 @@ export default function AdminFeaturedScreen() {
     }
   };
 
-  const handleDelete = async (video: FeaturedVideo) => {
+  const handleDelete = async (image: FeaturedImage) => {
     Alert.alert(
-      'Delete Video',
-      `Are you sure you want to delete "${video.title}"?\n\nThis action cannot be undone and will remove it from the What's New section.`,
+      'Delete Image',
+      `Are you sure you want to delete "${image.title}"?\n\nThis action cannot be undone and will remove it from the What's New section.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -217,29 +189,24 @@ export default function AdminFeaturedScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('🗑️ Deleting video:', video._id);
-              const response = await apiClient.deleteVideo(video._id);
+              console.log('🗑️ Deleting image:', image._id);
               
-              if (response.status === 200 || response.data) {
-                console.log('✅ Video deleted successfully');
+              // Remove from local state
+              setFeaturedImages(prev => prev.filter(img => img._id !== image._id));
                 
-                await fetchFeaturedVideos();
+              console.log('✅ Image deleted successfully');
                 
-                triggerUpdate({
-                  type: 'video',
+              triggerUpdate({
+                type: 'featured',
                   action: 'delete',
-                  data: { id: video._id },
+                data: { id: image._id },
                   timestamp: Date.now()
                 });
                 
-                Alert.alert('Success', 'Video deleted successfully!');
-              } else {
-                console.error('❌ Delete failed:', response.error);
-                Alert.alert('Delete Failed', response.error || 'Failed to delete video. Please try again.');
-              }
+              Alert.alert('Success', 'Image deleted successfully!');
             } catch (error) {
               console.error('❌ Delete error:', error);
-              Alert.alert('Network Error', 'Failed to delete video. Please check your connection and try again.');
+              Alert.alert('Network Error', 'Failed to delete image. Please try again.');
             }
           }
         }
@@ -250,51 +217,56 @@ export default function AdminFeaturedScreen() {
   const resetForm = () => {
     setFormData({
       title: '',
-      youtubeUrl: '',
-      category: 'Sport'
+      imageUrl: '',
+      dateLabel: 'Today'
     });
-    setFormErrors({ title: '', youtubeUrl: '' });
-    setEditingVideo(null);
+    setFormErrors({ title: '', imageUrl: '' });
+    setEditingImage(null);
   };
 
-  const handleEdit = (video: FeaturedVideo) => {
-    console.log('✏️ Editing video:', video.title);
-    setEditingVideo(video);
+  const handleEdit = (image: FeaturedImage) => {
+    console.log('✏️ Editing image:', image.title);
+    setEditingImage(image);
     setFormData({
-      title: video.title,
-      youtubeUrl: video.youtubeUrl,
-      category: video.category
+      title: image.title,
+      imageUrl: image.imageUrl,
+      dateLabel: image.dateLabel
     });
-    setFormErrors({ title: '', youtubeUrl: '' });
+    setFormErrors({ title: '', imageUrl: '' });
     setShowModal(true);
   };
 
-  const FeaturedVideoCard = ({ video }: { video: FeaturedVideo }) => (
-    <View style={styles.videoCard}>
-      <VideoCard 
-        video={{
-          id: video.id,
-          title: video.title,
-          thumbnailUrl: video.thumbnailUrl,
-          duration: video.duration,
-          uploadDate: video.uploadDate,
-          videoId: video.videoId
-        }}
-        onPress={() => router.push(`/video/${video.id}`)} 
-      />
-      <View style={styles.videoMeta}>
-        <View style={styles.metaRow}>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{video.category}</Text>
-          </View>
-          {video.views && (
-            <Text style={styles.viewCount}>{video.views.toLocaleString()} views</Text>
-          )}
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setFormData({ ...formData, imageUrl: result.assets[0].uri });
+    }
+  };
+
+  const FeaturedImageCard = ({ image }: { image: FeaturedImage }) => (
+    <View style={styles.imageCard}>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: image.imageUrl }} style={styles.featuredImage} />
+        <View style={styles.imageOverlay}>
+          <Text style={styles.imageTitle} numberOfLines={2}>{image.title}</Text>
         </View>
-        <View style={styles.videoActions}>
+      </View>
+      <View style={styles.imageMeta}>
+        <View style={styles.metaRow}>
+          <View style={styles.dateBadge}>
+            <Text style={styles.dateText}>{image.dateLabel}</Text>
+          </View>
+        </View>
+        <View style={styles.imageActions}>
           <TouchableOpacity 
             style={[styles.actionButton, styles.editButton]}
-            onPress={() => handleEdit(video)}
+            onPress={() => handleEdit(image)}
           >
             <Edit size={16} color="#FFFFFF" />
             <Text style={styles.actionButtonText}>Edit</Text>
@@ -302,7 +274,7 @@ export default function AdminFeaturedScreen() {
           
           <TouchableOpacity 
             style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDelete(video)}
+            onPress={() => handleDelete(image)}
           >
             <Trash2 size={16} color="#FFFFFF" />
             <Text style={styles.actionButtonText}>Delete</Text>
@@ -315,7 +287,7 @@ export default function AdminFeaturedScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Header title="What's New Content" showBackButton />
+        <Header title="Featured Images" showBackButton />
         <View style={styles.loadingContainer}>
           <LoadingSpinner size={50} color="#FFFFFF" showLogo />
           <Text style={styles.loadingText}>Loading...</Text>
@@ -326,19 +298,19 @@ export default function AdminFeaturedScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="What's New Content" showBackButton />
+      <Header title="Featured Images" showBackButton />
       
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.addButton}
           onPress={() => {
-            console.log('➕ Add video button pressed');
+            console.log('➕ Add image button pressed');
             resetForm();
             setShowModal(true);
           }}
         >
           <Plus size={20} color="#FFFFFF" />
-          <Text style={styles.addButtonText}>Add Video</Text>
+          <Text style={styles.addButtonText}>Add Image</Text>
         </TouchableOpacity>
       </View>
       
@@ -347,22 +319,22 @@ export default function AdminFeaturedScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {/* Current Featured Videos */}
+        {/* Current Featured Images */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Star size={24} color="#F59E0B" />
-            <Text style={styles.sectionTitle}>What's New Videos ({featuredVideos.length})</Text>
+            <ImageIcon size={24} color="#F59E0B" />
+            <Text style={styles.sectionTitle}>Featured Images ({featuredImages.length})</Text>
           </View>
           
-          {featuredVideos.length > 0 ? (
-            featuredVideos.map((video) => (
-              <FeaturedVideoCard key={video._id} video={video} />
+          {featuredImages.length > 0 ? (
+            featuredImages.map((image) => (
+              <FeaturedImageCard key={image._id} image={image} />
             ))
           ) : (
             <View style={styles.emptyState}>
-              <Video size={64} color="#D1D5DB" />
-              <Text style={styles.emptyText}>No videos in What's New</Text>
-              <Text style={styles.emptySubtext}>Add your first video to get started!</Text>
+              <ImageIcon size={64} color="#D1D5DB" />
+              <Text style={styles.emptyText}>No featured images</Text>
+              <Text style={styles.emptySubtext}>Add your first image to get started!</Text>
               <TouchableOpacity 
                 style={styles.emptyButton}
                 onPress={() => {
@@ -371,7 +343,7 @@ export default function AdminFeaturedScreen() {
                 }}
               >
                 <Plus size={20} color="#8B5CF6" />
-                <Text style={styles.emptyButtonText}>Add First Video</Text>
+                <Text style={styles.emptyButtonText}>Add First Image</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -382,19 +354,19 @@ export default function AdminFeaturedScreen() {
           <Text style={styles.sectionTitle}>Instructions</Text>
           <View style={styles.instructions}>
             <Text style={styles.instructionItem}>
-              • Videos added here will appear in the "What's New" section on the home screen
+              • Images added here will appear in the "What's New" section on the home screen
             </Text>
             <Text style={styles.instructionItem}>
-              • The most recent 5 videos will be displayed to users
+              • Featured images will be displayed in a horizontal scroll list
             </Text>
             <Text style={styles.instructionItem}>
               • Changes will be reflected immediately across all user devices
             </Text>
             <Text style={styles.instructionItem}>
-              • Make sure to use high-quality, engaging content
+              • Make sure to use high-quality, engaging images
             </Text>
             <Text style={styles.instructionItem}>
-              • Use descriptive titles to help users find content
+              • Use descriptive titles and appropriate date labels
             </Text>
           </View>
         </View>
@@ -424,7 +396,7 @@ export default function AdminFeaturedScreen() {
             </TouchableOpacity>
             
             <Text style={styles.modalTitle}>
-              {editingVideo ? 'Edit Video' : 'Add New Video'}
+              {editingImage ? 'Edit Image' : 'Add New Image'}
             </Text>
             
             <TouchableOpacity 
@@ -455,7 +427,7 @@ export default function AdminFeaturedScreen() {
           >
             {/* Title Input */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Video Title *</Text>
+              <Text style={styles.label}>Image Title *</Text>
               <TextInput
                 style={[
                   styles.input,
@@ -468,7 +440,7 @@ export default function AdminFeaturedScreen() {
                     setFormErrors({ ...formErrors, title: '' });
                   }
                 }}
-                placeholder="Enter a descriptive title for your video"
+                placeholder="Enter a descriptive title for your image"
                 multiline
                 numberOfLines={2}
                 maxLength={200}
@@ -483,88 +455,58 @@ export default function AdminFeaturedScreen() {
               )}
             </View>
 
-            {/* YouTube URL Input */}
+            {/* Image Input */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>YouTube URL *</Text>
-              <TextInput
+              <Text style={styles.label}>Image *</Text>
+              <TouchableOpacity 
                 style={[
-                  styles.input,
-                  formErrors.youtubeUrl ? styles.inputError : null
+                  styles.imageButton,
+                  formErrors.imageUrl ? styles.inputError : null
                 ]}
-                value={formData.youtubeUrl}
-                onChangeText={(text) => {
-                  setFormData({ ...formData, youtubeUrl: text });
-                  if (formErrors.youtubeUrl) {
-                    setFormErrors({ ...formErrors, youtubeUrl: '' });
-                  }
-                }}
-                placeholder="https://www.youtube.com/watch?v=..."
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                editable={!saving}
-              />
-              {formErrors.youtubeUrl ? (
-                <Text style={styles.errorText}>{formErrors.youtubeUrl}</Text>
+                onPress={pickImage}
+                disabled={saving}
+              >
+                <Camera size={20} color="#8B5CF6" />
+                <Text style={styles.imageButtonText}>
+                  {formData.imageUrl ? 'Change Image' : 'Select Image'}
+                </Text>
+              </TouchableOpacity>
+              {formData.imageUrl && (
+                <Image source={{ uri: formData.imageUrl }} style={styles.previewImage} />
+              )}
+              {formErrors.imageUrl ? (
+                <Text style={styles.errorText}>{formErrors.imageUrl}</Text>
               ) : (
                 <Text style={styles.helpText}>
-                  Supported: youtube.com/watch?v=, youtu.be/, youtube.com/embed/
+                  Select a high-quality image for the What's New section
                 </Text>
               )}
             </View>
 
-            {/* Category Selection */}
+            {/* Date Label Selection */}
             <View style={styles.formGroup}>
-              <Text style={styles.label}>Category</Text>
-              <View style={styles.categoryButtons}>
-                {[
-                  { key: 'Sport', label: 'Sport' },
-                  { key: 'Podcast', label: 'Podcast' },
-                  { key: 'TV Show', label: 'TV Show' },
-                  { key: 'Other', label: 'Other' }
-                ].map((category) => (
+              <Text style={styles.label}>Date Label</Text>
+              <View style={styles.dateLabelButtons}>
+                {dateLabelOptions.map((dateLabel) => (
                   <TouchableOpacity
-                    key={category.key}
+                    key={dateLabel}
                     style={[
-                      styles.categoryButton,
-                      formData.category === category.key && styles.categoryButtonActive
+                      styles.dateLabelButton,
+                      formData.dateLabel === dateLabel && styles.dateLabelButtonActive
                     ]}
-                    onPress={() => setFormData({ ...formData, category: category.key as any })}
+                    onPress={() => setFormData({ ...formData, dateLabel })}
                     disabled={saving}
                   >
                     <Text style={[
-                      styles.categoryButtonText,
-                      formData.category === category.key && styles.categoryButtonTextActive
+                      styles.dateLabelButtonText,
+                      formData.dateLabel === dateLabel && styles.dateLabelButtonTextActive
                     ]}>
-                      {category.label}
+                      {dateLabel}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
-
-            {/* Preview Section */}
-            {formData.youtubeUrl && extractVideoId(formData.youtubeUrl) && (
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Preview</Text>
-                <View style={styles.previewContainer}>
-                  <View style={styles.previewRow}>
-                    <Text style={styles.previewLabel}>Video ID:</Text>
-                    <Text style={styles.previewValue}>{extractVideoId(formData.youtubeUrl)}</Text>
-                  </View>
-                  <View style={styles.previewRow}>
-                    <Text style={styles.previewLabel}>Thumbnail:</Text>
-                    <Text style={styles.previewValue} numberOfLines={1}>
-                      {generateThumbnail(extractVideoId(formData.youtubeUrl))}
-                    </Text>
-                  </View>
-                  <View style={styles.previewRow}>
-                    <Text style={styles.previewLabel}>Category:</Text>
-                    <Text style={styles.previewValue}>{formData.category}</Text>
-                  </View>
-                </View>
-              </View>
-            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
@@ -678,35 +620,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  videoCard: {
+  imageCard: {
     marginBottom: 16,
   },
-  videoMeta: {
+  imageContainer: {
+    position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 12,
+  },
+  featuredImage: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 12,
+  },
+  imageTitle: {
+    fontSize: 16,
+    fontFamily: 'Cocogoose',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    lineHeight: 20,
+  },
+  imageMeta: {
     paddingTop: 12,
   },
   metaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     alignItems: 'center',
     marginBottom: 12,
   },
-  categoryBadge: {
+  dateBadge: {
     backgroundColor: '#A855F7',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
   },
-  categoryText: {
+  dateText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '600',
   },
-  viewCount: {
-    color: '#E0E7FF',
-    fontSize: 12,
-    opacity: 0.8,
-  },
-  videoActions: {
+  imageActions: {
     flexDirection: 'row',
     gap: 12,
   },
@@ -821,7 +785,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 12,
-    color: '#E0E7FF',
+    color: '#6B7280',
     marginTop: 6,
   },
   errorText: {
@@ -830,12 +794,36 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontWeight: '500',
   },
-  categoryButtons: {
+  imageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#8B5CF6',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    paddingVertical: 20,
+    gap: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  imageButtonText: {
+    color: '#8B5CF6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  previewImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginTop: 12,
+    resizeMode: 'cover',
+  },
+  dateLabelButtons: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 12,
   },
-  categoryButton: {
+  dateLabelButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -843,41 +831,17 @@ const styles = StyleSheet.create({
     borderColor: '#D1D5DB',
     backgroundColor: '#FFFFFF',
   },
-  categoryButtonActive: {
+  dateLabelButtonActive: {
     backgroundColor: '#8B5CF6',
     borderColor: '#8B5CF6',
   },
-  categoryButtonText: {
+  dateLabelButtonText: {
     fontSize: 14,
-    color: '#8B5CF6',
+    color: '#6B7280',
     fontWeight: '500',
   },
-  categoryButtonTextActive: {
+  dateLabelButtonTextActive: {
     color: '#FFFFFF',
     fontWeight: '600',
-  },
-  previewContainer: {
-    backgroundColor: '#F9FAFB',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  previewRow: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  previewLabel: {
-    fontSize: 12,
-    fontFamily: 'Cocogoose',
-    fontWeight: 'bold',
-    fontStyle: 'italic',
-    color: '#6B46C1',
-    width: 80,
-  },
-  previewValue: {
-    fontSize: 12,
-    color: '#6B7280',
-    flex: 1,
   },
 });
