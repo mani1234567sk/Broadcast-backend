@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, FlatList, TouchableOpacity, Image } from 'react-native';
 import Header from '@/components/Header';
 import VideoPlayer from '@/components/VideoPlayer';
 import VideoCard from '@/components/VideoCard';
@@ -21,10 +21,19 @@ interface Match {
   imageUrl?: string;
 }
 
+interface FeaturedImage {
+  _id: string;
+  id: string;
+  title: string;
+  imageUrl: string;
+  dateLabel: string;
+  uploadDate: string;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
-  const [whatsNewVideos, setWhatsNewVideos] = useState([]);
+  const [whatsNewImages, setWhatsNewImages] = useState<FeaturedImage[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
@@ -62,15 +71,60 @@ export default function HomeScreen() {
       }
 
       // Fetch videos for What's New section
+      // For now, we'll use sample featured images data
+      // In a real implementation, you would fetch from a featured images API
+      const sampleFeaturedImages: FeaturedImage[] = [
+        {
+          _id: '1',
+          id: '1',
+          title: 'Championship Finals Tonight',
+          imageUrl: 'https://images.pexels.com/photos/274506/pexels-photo-274506.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: 'Today',
+          uploadDate: new Date().toISOString()
+        },
+        {
+          _id: '2',
+          id: '2',
+          title: 'Player of the Month Award',
+          imageUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: '2 days ago',
+          uploadDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          _id: '3',
+          id: '3',
+          title: 'New Stadium Opening',
+          imageUrl: 'https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: '1 week ago',
+          uploadDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          _id: '4',
+          id: '4',
+          title: 'Season Highlights Recap',
+          imageUrl: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: '2 weeks ago',
+          uploadDate: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          _id: '5',
+          id: '5',
+          title: 'Training Camp Updates',
+          imageUrl: 'https://images.pexels.com/photos/1884574/pexels-photo-1884574.jpeg?auto=compress&cs=tinysrgb&w=800',
+          dateLabel: '1 month ago',
+          uploadDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+      setWhatsNewImages(sampleFeaturedImages);
+
+      // Keep the existing video logic for fallback
       const videosResponse = await apiClient.getVideos();
-      if (videosResponse.data) {
-        // Get the 5 most recent videos and add relative date labels
-        const recentVideos = videosResponse.data.slice(0, 5).map((video, index) => {
+      if (videosResponse.data && sampleFeaturedImages.length === 0) {
+        // Only use videos if no featured images are available
+        const recentVideos = videosResponse.data.slice(0, 3).map((video, index) => {
           let dateLabel = 'New';
           if (index === 1) dateLabel = '2 days ago';
           else if (index === 2) dateLabel = '1 week ago';
-          else if (index === 3) dateLabel = '2 weeks ago';
-          else if (index === 4) dateLabel = '1 month ago';
           
           return {
             ...video,
@@ -79,39 +133,15 @@ export default function HomeScreen() {
             _id: video._id || video.id
           };
         });
-        setWhatsNewVideos(recentVideos);
-      } else {
-        // Fallback sample data for What's New
-        const sampleWhatsNew = [
-          {
-            _id: '1',
-            id: '1',
-            title: 'Latest Match Highlights',
-            thumbnailUrl: 'https://images.pexels.com/photos/274506/pexels-photo-274506.jpeg?auto=compress&cs=tinysrgb&w=800',
-            duration: '8:45',
-            videoId: 'dQw4w9WgXcQ',
-            dateLabel: 'New'
-          },
-          {
-            _id: '2',
-            id: '2',
-            title: 'Weekly Sports Roundup',
-            thumbnailUrl: 'https://images.pexels.com/photos/1618200/pexels-photo-1618200.jpeg?auto=compress&cs=tinysrgb&w=800',
-            duration: '12:30',
-            videoId: 'dQw4w9WgXcQ',
-            dateLabel: '2 days ago'
-          },
-          {
-            _id: '3',
-            id: '3',
-            title: 'Championship Finals',
-            thumbnailUrl: 'https://images.pexels.com/photos/1752757/pexels-photo-1752757.jpeg?auto=compress&cs=tinysrgb&w=800',
-            duration: '15:20',
-            videoId: 'dQw4w9WgXcQ',
-            dateLabel: '1 week ago'
-          }
-        ];
-        setWhatsNewVideos(sampleWhatsNew);
+        // Convert videos to image format for display
+        setWhatsNewImages(recentVideos.map(video => ({
+          _id: video._id,
+          id: video.id,
+          title: video.title,
+          imageUrl: video.thumbnailUrl,
+          dateLabel: video.dateLabel,
+          uploadDate: video.uploadDate || new Date().toISOString()
+        })));
       }
 
       // Fetch matches
@@ -182,8 +212,9 @@ export default function HomeScreen() {
     router.push(`/match/${matchId}`);
   };
 
-  const handleVideoPress = (videoId) => {
-    router.push(`/video/${videoId}`);
+  const handleImagePress = (imageId: string) => {
+    // For now, just show an alert. In a real app, you might navigate to an image detail view
+    console.log('Image pressed:', imageId);
   };
 
   const renderMatchItem = ({ item }: { item: Match }) => (
@@ -204,25 +235,32 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderWhatsNewItem = ({ item }) => (
-    <View style={styles.whatsNewItem}>
-      <TouchableOpacity onPress={() => handleVideoPress(item.id)}>
-        <VideoCard
-          video={{
-            id: item.id,
-            title: item.title,
-            thumbnailUrl: item.thumbnailUrl,
-            duration: item.duration,
-            uploadDate: item.dateLabel,
-            videoId: item.videoId
-          }}
-          onPress={() => handleVideoPress(item.id)}
-        />
-      </TouchableOpacity>
+  const renderWhatsNewItem = ({ item }: { item: FeaturedImage }) => (
+    <TouchableOpacity style={styles.whatsNewItem} onPress={() => handleImagePress(item.id)}>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
+        <View style={styles.imageOverlay}>
+          <Text style={styles.imageTitle} numberOfLines={2}>{item.title}</Text>
+        </View>
+      </View>
       <View style={styles.dateLabel}>
         <Text style={styles.dateLabelText}>{item.dateLabel}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
+  );
+
+  const FeaturedImageCard = ({ image }: { image: FeaturedImage }) => (
+    <TouchableOpacity style={styles.whatsNewItem} onPress={() => handleImagePress(image.id)}>
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: image.imageUrl }} style={styles.featuredImage} />
+        <View style={styles.imageOverlay}>
+          <Text style={styles.imageTitle} numberOfLines={2}>{image.title}</Text>
+        </View>
+      </View>
+      <View style={styles.dateLabel}>
+        <Text style={styles.dateLabelText}>{image.dateLabel}</Text>
+      </View>
+    </TouchableOpacity>
   );
 
   const MatchSection = ({ 
@@ -307,10 +345,10 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>What's New</Text>
           </View>
           
-          {whatsNewVideos.length > 0 ? (
+          {whatsNewImages.length > 0 ? (
             <FlatList
               horizontal
-              data={whatsNewVideos}
+              data={whatsNewImages}
               keyExtractor={(item) => item.id}
               renderItem={renderWhatsNewItem}
               showsHorizontalScrollIndicator={false}
@@ -318,7 +356,7 @@ export default function HomeScreen() {
             />
           ) : (
             <View style={styles.emptyWhatsNew}>
-              <Text style={styles.emptyText}>No new content available</Text>
+              <Text style={styles.emptyText}>No featured images available</Text>
             </View>
           )}
         </View>
@@ -471,17 +509,45 @@ const styles = StyleSheet.create({
   whatsNewItem: {
     width: 280,
     marginRight: 16,
+  },
+  imageContainer: {
     position: 'relative',
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  featuredImage: {
+    width: '100%',
+    height: 160,
+    resizeMode: 'cover',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 12,
+  },
+  imageTitle: {
+    fontSize: 14,
+    fontFamily: 'Cocogoose',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    lineHeight: 18,
   },
   dateLabel: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
+    marginTop: 8,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
-    zIndex: 10,
+    alignSelf: 'flex-start',
   },
   dateLabelText: {
     color: '#FFFFFF',
