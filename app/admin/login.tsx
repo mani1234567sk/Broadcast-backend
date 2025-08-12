@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Lock, Mail, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ADMIN_CREDENTIALS = {
-  email: 'bugsbunny1@gmail.com',
-  password: 'bugsbunny'
+  email: 'bb@gmail.com',
+  password: 'bb'
 };
 
 export default function AdminLoginScreen() {
@@ -40,7 +41,7 @@ export default function AdminLoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (isLocked || false) {
+    if (isLocked) {
       Alert.alert(
         'Account Temporarily Locked',
         'Too many failed login attempts. Please wait a moment before trying again.',
@@ -53,18 +54,25 @@ export default function AdminLoginScreen() {
 
     setIsLoading(true);
 
-    // Simulate loading delay for better UX
-    setTimeout(() => {
+    try {
+      // Simulate loading delay for better UX
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
-        setIsLoading(false);
         setLoginAttempts(0);
         console.log('Admin login successful');
-        // Navigate to admin panel with authentication flag
+        
+        // Store authentication state
+        await AsyncStorage.setItem('admin_authenticated', 'true');
+        
+        setIsLoading(false);
+        // Navigate to admin panel
         router.replace('/(tabs)/admin?authenticated=true');
       } else {
-        setIsLoading(false);
         const newAttempts = loginAttempts + 1;
         setLoginAttempts(newAttempts);
+        
+        setIsLoading(false);
         
         if (newAttempts >= 3) {
           setIsLocked(true);
@@ -75,22 +83,24 @@ export default function AdminLoginScreen() {
             [{ text: 'OK', style: 'default' }]
           );
         } else {
+          // Clear password field after failed attempt
+          setPassword('');
           Alert.alert(
             'Login Failed',
             `Invalid email or password. ${3 - newAttempts} attempts remaining.`,
             [{ text: 'Try Again', style: 'default' }]
           );
         }
-        
-        // Clear password field after failed attempt
-        setPassword('');
-        Alert.alert(
-          'Login Failed',
-          'Invalid email or password. Please try again.',
-          [{ text: 'OK', style: 'default' }]
-        );
       }
-    }, 1000);
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      Alert.alert(
+        'Login Error',
+        'An error occurred during login. Please try again.',
+        [{ text: 'OK', style: 'default' }]
+      );
+    }
   };
 
   const handleInputChange = (field: 'email' | 'password', value: string) => {

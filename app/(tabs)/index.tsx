@@ -83,19 +83,24 @@ export default function HomeScreen() {
           {
             id: '1',
             title: 'Latest Match Highlights',
-            imageUrl: require('../../assets/images/b.jpg'),
+            imageUrl: require('../../assets/images/b division.png'),
             dateLabel: 'Today'
           },
           {
             id: '2',
             title: 'Weekly Sports Roundup',
-            imageUrl: require('../../assets/images/icon.jpg'),
+            imageUrl: require('../../assets/images/futsal league.png'),
             dateLabel: '2 days ago'
           },
           {
             id: '3',
             title: 'Championship Finals',
-            imageUrl: require('../../assets/images/icono.jpg'),
+            imageUrl: require('../../assets/images/PREMIER LEAGUE.png'),
+            dateLabel: '1 week ago'
+          }, {
+            id: '4',
+            title: 'Championship Finals',
+            imageUrl: require('../../assets/images/junior premier league.png'),
             dateLabel: '1 week ago'
           }
         ];
@@ -166,13 +171,22 @@ export default function HomeScreen() {
   }, []);
 
   const handleMatchPress = (matchId: string) => {
-    // Navigate to match details
-    router.push(`/match/${matchId}`);
+    try {
+      // Navigate to match details
+      router.push(`/match/${matchId}`);
+    } catch (error) {
+      console.error('Error navigating to match:', error);
+      Alert.alert('Navigation Error', 'Unable to open match details. Please try again.');
+    }
   };
 
   const handleImagePress = (imageId: string) => {
-    // For now, just show an alert since we're only displaying images
-    console.log('Image pressed:', imageId);
+    try {
+      // For now, just show an alert since we're only displaying images
+      console.log('Image pressed:', imageId);
+    } catch (error) {
+      console.error('Error handling image press:', error);
+    }
   };
 
   const renderMatchItem = ({ item }: { item: Match }) => (

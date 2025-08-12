@@ -50,8 +50,13 @@ export default function LeaguesScreen() {
   }, []);
 
   const handleLeaguePress = (leagueId: string) => {
-    // Navigate to league details
-    router.push(`/league/${leagueId}`);
+    try {
+      // Navigate to league details
+      router.push(`/league/${leagueId}`);
+    } catch (error) {
+      console.error('Error navigating to league:', error);
+      Alert.alert('Navigation Error', 'Unable to open league details. Please try again.');
+    }
   };
 
   if (loading) {

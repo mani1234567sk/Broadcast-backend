@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity, ImageBackground, Alert } from 'react-native';
 import { Trophy, Filter, Star, Play } from 'lucide-react-native';
 import Header from '@/components/Header';
 import VideoCard from '@/components/VideoCard';

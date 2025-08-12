@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Header from '@/components/Header';
 import VideoPlayer from '@/components/VideoPlayer';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Calendar, Eye, Tag } from 'lucide-react-native';
+import apiClient from '@/lib/api';
 
 interface VideoDetails {
   id: string;
@@ -33,18 +34,32 @@ export default function VideoDetailsScreen() {
 
   const fetchVideoDetails = async () => {
     try {
-      // Use the API client for consistent error handling
-      const response = await fetch(`/api/videos/${id}`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await apiClient.getVideo(id as string);
+      if (response.data) {
+        const data = response.data;
         setVideo(data);
         console.log('✅ Video details loaded:', data.title);
       } else {
-        console.error('Failed to fetch video details:', response.status);
-        // Don't set fallback data - let the user know there's an issue
+        console.error('Failed to fetch video details:', response.error);
+        Alert.alert(
+          'Video Unavailable',
+          'Unable to load video details. Please check your internet connection and try again.',
+          [
+            { text: 'Retry', onPress: fetchVideoDetails },
+            { text: 'Go Back', onPress: () => router.back() }
+          ]
+        );
       }
     } catch (error) {
       console.error('Error fetching video details:', error);
+      Alert.alert(
+        'Connection Error',
+        'Failed to connect to the server. Please try again later.',
+        [
+          { text: 'Retry', onPress: fetchVideoDetails },
+          { text: 'Go Back', onPress: () => router.back() }
+        ]
+      );
     } finally {
       setLoading(false);
     }

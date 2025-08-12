@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, RefreshControl, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Header from '@/components/Header';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Users, MapPin, Calendar, Trophy } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import apiClient from '@/lib/api';
 
 interface MatchDetails {
   id: string;
@@ -27,6 +29,7 @@ interface MatchDetails {
 
 export default function MatchDetailsScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const [match, setMatch] = useState<MatchDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -37,11 +40,12 @@ export default function MatchDetailsScreen() {
 
   const fetchMatchDetails = async () => {
     try {
-      const response = await fetch(`/api/matches/${id}`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await apiClient.getMatch(id as string);
+      if (response.data) {
+        const data = response.data;
         setMatch(data);
       } else {
+        console.error('Failed to fetch match details:', response.error);
         // Fallback sample data
         const matchDetails: MatchDetails = {
           id: id as string,
@@ -67,6 +71,14 @@ export default function MatchDetailsScreen() {
       }
     } catch (error) {
       console.error('Error fetching match details:', error);
+      Alert.alert(
+        'Connection Error',
+        'Failed to load match details. Please check your internet connection.',
+        [
+          { text: 'Retry', onPress: fetchMatchDetails },
+          { text: 'Go Back', onPress: () => router.back() }
+        ]
+      );
     } finally {
       setLoading(false);
     }

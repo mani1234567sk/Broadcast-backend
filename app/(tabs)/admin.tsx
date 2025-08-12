@@ -3,9 +3,10 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Platform, 
 import { Play, Trophy, Calendar, Video, Plus, ChartBar as BarChart3, LogOut } from 'lucide-react-native';
 import Header from '@/components/Header';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams, useGlobalSearchParams } from 'expo-router';
 import { useAutoRefresh } from '@/hooks/useRealTimeUpdates';
 import apiClient from '@/lib/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface DashboardStats {
   totalMatches: number;
@@ -18,21 +19,63 @@ interface DashboardStats {
 
 export default function AdminScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useGlobalSearchParams();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   
-  // Check authentication status
+  // Check authentication status with better error handling
   useFocusEffect(
     React.useCallback(() => {
-      // If coming from successful login, mark as authenticated
-      if (params.authenticated === 'true') {
-        setIsAuthenticated(true);
-      } else if (!isAuthenticated) {
-        // If not authenticated, redirect to login
-        router.replace('/admin/login');
-      }
+      const checkAuth = async () => {
+        try {
+          // Check if coming from successful login
+          if (params.authenticated === 'true') {
+            setIsAuthenticated(true);
+            setAuthChecked(true);
+            // Store authentication state
+            await AsyncStorage.setItem('admin_authenticated', 'true');
+            return;
+          }
+
+          // Check stored authentication state
+          const storedAuth = await AsyncStorage.getItem('admin_authenticated');
+          if (storedAuth === 'true') {
+            setIsAuthenticated(true);
+            setAuthChecked(true);
+            return;
+          }
+
+          // Not authenticated, redirect to login
+          setAuthChecked(true);
+          if (!isAuthenticated) {
+            router.replace('/admin/login');
+          }
+        } catch (error) {
+          console.error('Error checking authentication:', error);
+          setAuthChecked(true);
+          // On error, redirect to login for safety
+          router.replace('/admin/login');
+        }
+      };
+
+      checkAuth();
     }, [router, params, isAuthenticated])
   );
+
+  // Don't render anything until auth is checked
+  if (!authChecked) {
+    return (
+      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+        <View style={styles.overlay}>
+          <Header title="Admin Panel" />
+          <View style={styles.loadingContainer}>
+            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+            <Text style={styles.loadingText}>Checking authentication...</Text>
+          </View>
+        </View>
+      </ImageBackground>
+    );
+      }
 
   const [stats, setStats] = useState<DashboardStats>({
     totalMatches: 0,
@@ -79,9 +122,18 @@ export default function AdminScreen() {
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             console.log('Admin logging out...');
+            
+            try {
+              // Clear stored authentication
+              await AsyncStorage.removeItem('admin_authenticated');
+            } catch (error) {
+              console.error('Error clearing auth storage:', error);
+            }
+            
             setIsAuthenticated(false);
+            setAuthChecked(false);
             // Clear any cached data or state if needed
             setStats({
               totalMatches: 0,

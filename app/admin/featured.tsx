@@ -58,21 +58,21 @@ export default function AdminFeaturedScreen() {
             _id: '1',
             id: '1',
             title: 'Latest Match Highlights',
-            imageUrl: require('../../assets/images/b.jpg'),
+            imageUrl: require('../../assets/images/b division.png'),
             dateLabel: 'Today'
           },
           {
             _id: '2',
             id: '2',
             title: 'Weekly Sports Roundup',
-            imageUrl: require('../../assets/images/icon.jpg'),
+            imageUrl: require('../../assets/images/futsal league.png'),
             dateLabel: '2 days ago'
           },
           {
             _id: '3',
             id: '3',
             title: 'Championship Finals',
-            imageUrl: require('../../assets/images/icono.jpg'),
+            imageUrl: require('../../assets/images/PREMIER LEAGUE.png'),
             dateLabel: '1 week ago'
           }
         ];

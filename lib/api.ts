@@ -2,27 +2,32 @@ import { Platform } from 'react-native';
 
 // API Configuration and utilities
 const getApiBaseUrl = () => {
-  // Use the deployed backend URL for all platforms
-  const deployedUrl = 'https://broadcast-backend-2.onrender.com/api';
+  // Production backend URL
+  const productionUrl = 'https://broadcast-backend-2.onrender.com/api';
+  
+  // Development fallback
+  const developmentUrl = 'http://localhost:3001/api';
 
   if (Platform.OS === 'web') {
-    // For web, prioritize the deployed URL unless overridden by environment variable
     if (typeof window !== 'undefined') {
       const { hostname } = window.location;
-      // For local development, allow fallback to localhost
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3001/api';
+        return process.env.EXPO_PUBLIC_API_URL || developmentUrl;
       }
-      return deployedUrl;
+      return productionUrl;
     }
-    return deployedUrl;
+    return productionUrl;
   } else {
-    // For mobile platforms (Android/iOS), use the deployed URL
-    return process.env.EXPO_PUBLIC_API_URL || deployedUrl;
+    // For mobile platforms, always use production URL in builds
+    return process.env.EXPO_PUBLIC_API_URL || productionUrl;
   }
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
+// Add request timeout and retry logic
+const REQUEST_TIMEOUT = 10000; // 10 seconds
+const MAX_RETRIES = 2;
 
 interface ApiResponse<T> {
   data?: T;
@@ -41,55 +46,86 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    try {
-      const url = `${this.baseUrl}${endpoint}`;
-      const config: RequestInit = {
-        headers: {
-          'Content-Type': 'application/json',
-          ...options.headers,
-        },
-        ...options,
-      };
+    let lastError: any;
+    
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const url = `${this.baseUrl}${endpoint}`;
+        
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+        
+        const config: RequestInit = {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...options.headers,
+          },
+          signal: controller.signal,
+          ...options,
+        };
+        console.log(`Making API request (attempt ${attempt + 1}/${MAX_RETRIES + 1}) to: ${url}`);
+        
+        const response = await fetch(url, config);
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`API Error ${response.status}:`, errorText);
+          
+          // Don't retry on client errors (4xx)
+          if (response.status >= 400 && response.status < 500) {
+            return {
+              error: errorText || `HTTP ${response.status}`,
+              status: response.status,
+            };
+          }
+          
+          // Retry on server errors (5xx) or network issues
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
 
-      console.log(`Making API request to: ${url}`);
-      
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API Error ${response.status}:`, errorText);
+        const data = await response.json();
         return {
-          error: errorText || `HTTP ${response.status}`,
+          data,
           status: response.status,
         };
-      }
-
-      const data = await response.json();
-
-      return {
-        data,
-        status: response.status,
-      };
-    } catch (error) {
-      console.error('API request failed:', error);
-      
-      // Provide platform-specific error messages
-      let errorMessage = 'Network error occurred';
-      if (error instanceof TypeError && error.message.includes('Network request failed')) {
-        if (Platform.OS === 'android') {
-          errorMessage = 'Unable to connect to server. Make sure:\n1. The backend server is accessible at https://broadcast-backend-2.onrender.com\n2. Your device has an active internet connection';
-        } else if (Platform.OS === 'ios') {
-          errorMessage = 'Unable to connect to server. Please ensure the backend at https://broadcast-backend-2.onrender.com is accessible from your iOS device.';
-        } else {
-          errorMessage = 'Unable to connect to server. Please ensure the backend is accessible at https://broadcast-backend-2.onrender.com';
+      } catch (error: any) {
+        lastError = error;
+        console.error(`API request attempt ${attempt + 1} failed:`, error);
+        
+        // Don't retry on the last attempt
+        if (attempt === MAX_RETRIES) {
+          break;
         }
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
       }
-      
-      return {
-        error: errorMessage,
-        status: 0,
-      };
     }
+
+    // All attempts failed
+    console.error('All API request attempts failed:', lastError);
+    
+    // Provide platform-specific error messages
+    let errorMessage = 'Network error occurred';
+    if (lastError?.name === 'AbortError') {
+      errorMessage = 'Request timed out. Please check your internet connection.';
+    } else if (lastError instanceof TypeError && lastError.message.includes('Network request failed')) {
+      if (Platform.OS === 'android') {
+        errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
+      } else if (Platform.OS === 'ios') {
+        errorMessage = 'Network connection failed. Please ensure you have an active internet connection.';
+      } else {
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      }
+    }
+    
+    return {
+      error: errorMessage,
+      status: 0,
+    };
   }
 
   // Health Check

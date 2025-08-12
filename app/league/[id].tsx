@@ -85,7 +85,12 @@ export default function LeagueDetailsScreen() {
   };
 
   const handleMatchPress = (matchId: string) => {
-    router.push(`/match/${matchId}`);
+    try {
+      router.push(`/match/${matchId}`);
+    } catch (error) {
+      console.error('Error navigating to match:', error);
+      Alert.alert('Navigation Error', 'Unable to open match details. Please try again.');
+    }
   };
 
   return (
