@@ -1,15 +1,42 @@
 {
-  "name": "dream-backend",
+  "name": "live-tv-backend",
   "version": "1.0.0",
+  "description": "Backend for Live TV app using Node.js, Express, MongoDB, and Socket.io",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node -r @babel/register server.js",
+    "dev": "nodemon --exec babel-node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^4.21.2",
+    "http": "^0.0.1-security",
     "mongoose": "^8.16.2",
     "socket.io": "^4.8.1"
-  }
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.26.0",
+    "@babel/core": "^7.26.0",
+    "@babel/node": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@babel/register": "^7.26.0",
+    "nodemon": "^3.1.10"
+  },
+  "babel": {
+    "presets": ["@babel/preset-env"]
+  },
+  "engines": {
+    "node": ">=18.x"
+  },
+  "keywords": [
+    "node",
+    "express",
+    "mongodb",
+    "socket.io",
+    "babel",
+    "live-tv"
+  ],
+  "author": "",
+  "license": "ISC"
 }
