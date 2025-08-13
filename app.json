@@ -26,7 +26,10 @@
         "android.permission.WRITE_EXTERNAL_STORAGE",
         "android.permission.READ_EXTERNAL_STORAGE"
       ],
-      "package": "com.bugsbunny07.dreamlivetv"
+      "package": "com.bugsbunny07.dreamlivetv",
+      "proguard": {
+        "enable": false
+      }
     },
     "web": {
       "bundler": "metro",

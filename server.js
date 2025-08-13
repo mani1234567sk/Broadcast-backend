@@ -158,15 +158,7 @@ app.get('/api/health', (req, res) => {
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     server: 'Dream Live API Server',
     platform: 'Node.js',
-    version: '1.0.0',
-    endpoints: {
-      matches: '/api/matches',
-      leagues: '/api/leagues', 
-      videos: '/api/videos',
-      highlights: '/api/highlights',
-      featured: '/api/featured-video',
-      admin: '/api/admin/stats'
-    }
+    version: '1.0.0'
   });
 });
 
@@ -378,15 +370,7 @@ app.get('/api/videos', async (req, res) => {
 
 app.get('/api/videos/:id', async (req, res) => {
   try {
-    let video = await Video.findById(req.params.id);
-    let isHighlight = false;
-    
-    // If not found as video, try to find it as a highlight
-    if (!video) {
-      video = await Highlight.findById(req.params.id);
-      isHighlight = true;
-    }
-    
+    const video = await Video.findById(req.params.id);
     if (!video) {
       return res.status(404).json({ error: 'Video not found' });
     }
@@ -395,16 +379,7 @@ app.get('/api/videos/:id', async (req, res) => {
     video.views = (video.views || 0) + 1;
     await video.save();
     
-    // Generate description if not present
-    const description = video.description || generateDescription(video, isHighlight);
-    
-    const videoDetails = {
-      ...video.toObject(),
-      description,
-      category: isHighlight ? 'Sports Highlight' : (video.category || 'Video')
-    };
-    
-    res.json(videoDetails);
+    res.json(video);
   } catch (error) {
     console.error('❌ Error fetching video:', error);
     res.status(500).json({ error: 'Failed to fetch video' });
@@ -432,31 +407,19 @@ app.post('/api/videos', async (req, res) => {
 
 app.put('/api/videos/:id', async (req, res) => {
   try {
-    // Try to update as video first, then as highlight
-    let updatedItem = await Video.findByIdAndUpdate(
+    const video = await Video.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
     
-    let itemType = 'video';
-    
-    if (!updatedItem) {
-      updatedItem = await Highlight.findByIdAndUpdate(
-        req.params.id,
-        req.body,
-        { new: true, runValidators: true }
-      );
-      itemType = 'highlight';
-    }
-    
-    if (!updatedItem) {
+    if (!video) {
       return res.status(404).json({ error: 'Video not found' });
     }
     
-    broadcastUpdate(itemType, 'update', updatedItem);
-    console.log('✅ Video updated:', updatedItem.title);
-    res.json(updatedItem);
+    broadcastUpdate('video', 'update', video);
+    console.log('✅ Video updated:', video.title);
+    res.json(video);
   } catch (error) {
     console.error('❌ Error updating video:', error);
     res.status(500).json({ error: 'Failed to update video' });
@@ -466,23 +429,15 @@ app.put('/api/videos/:id', async (req, res) => {
 app.delete('/api/videos/:id', async (req, res) => {
   try {
     console.log('🗑️ Attempting to delete video:', req.params.id);
+    const video = await Video.findByIdAndDelete(req.params.id);
     
-    // Try to delete as video first, then as highlight
-    let deletedItem = await Video.findByIdAndDelete(req.params.id);
-    let itemType = 'video';
-    
-    if (!deletedItem) {
-      deletedItem = await Highlight.findByIdAndDelete(req.params.id);
-      itemType = 'highlight';
-    }
-    
-    if (!deletedItem) {
+    if (!video) {
       console.log('❌ Video not found:', req.params.id);
       return res.status(404).json({ error: 'Video not found' });
     }
     
-    broadcastUpdate(itemType, 'delete', { id: req.params.id });
-    console.log('✅ Video deleted:', deletedItem.title);
+    broadcastUpdate('video', 'delete', { id: req.params.id });
+    console.log('✅ Video deleted:', video.title);
     res.json({ message: 'Video deleted successfully' });
   } catch (error) {
     console.error('❌ Error deleting video:', error);
@@ -721,80 +676,16 @@ app.get('/api/admin/stats', async (req, res) => {
   }
 });
 
-// Helper function to generate descriptions
-function generateDescription(video, isHighlight) {
-  if (isHighlight) {
-    const sport = video.sport || 'Sports';
-    const featured = video.featured ? 'Featured ' : '';
-    
-    return `${featured}${sport} Highlight: ${video.title}
-
-Watch this exciting ${sport.toLowerCase()} highlight featuring incredible moments and spectacular plays. This video showcases the best action from recent matches.
-
-${video.featured ? '⭐ This is a featured highlight, showcasing some of the most exciting moments in sports!\n\n' : ''}Key Features:
-• High-quality ${sport.toLowerCase()} footage
-• Professional commentary and analysis
-• Best moments and key plays
-• Perfect for sports enthusiasts
-
-Don't miss these incredible moments from the world of ${sport.toLowerCase()}!`;
-  } else {
-    const category = video.category || 'Video';
-    
-    return `${category}: ${video.title}
-
-Enjoy this ${category.toLowerCase()} content featuring engaging and entertaining material.
-
-Category: ${category}
-${video.views ? `Views: ${video.views.toLocaleString()}` : ''}
-
-Watch and enjoy this quality content!`;
-  }
-}
-
 // Error handling middleware
 app.use((error, req, res, next) => {
   console.error('❌ Server error:', error);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// 404 handler for missing routes
+// 404 handler
 app.use('*', (req, res) => {
   console.log('❌ Route not found:', req.originalUrl);
-  res.status(404).json({ 
-    error: 'Route not found',
-    availableRoutes: [
-      'GET /api/health',
-      'GET /api/matches',
-      'POST /api/matches',
-      'GET /api/matches/:id',
-      'PUT /api/matches/:id',
-      'DELETE /api/matches/:id',
-      'GET /api/leagues',
-      'POST /api/leagues',
-      'GET /api/leagues/:id',
-      'PUT /api/leagues/:id',
-      'DELETE /api/leagues/:id',
-      'GET /api/leagues/:id/matches',
-      'GET /api/videos',
-      'POST /api/videos',
-      'GET /api/videos/:id',
-      'PUT /api/videos/:id',
-      'DELETE /api/videos/:id',
-      'GET /api/highlights',
-      'POST /api/highlights',
-      'GET /api/highlights/:id',
-      'PUT /api/highlights/:id',
-      'DELETE /api/highlights/:id',
-      'GET /api/featured-video',
-      'POST /api/featured-video',
-      'GET /api/featured-images',
-      'POST /api/featured-images',
-      'PUT /api/featured-images/:id',
-      'DELETE /api/featured-images/:id',
-      'GET /api/admin/stats'
-    ]
-  });
+  res.status(404).json({ error: 'Route not found' });
 });
 
 // Initialize database and start server
@@ -812,17 +703,8 @@ const startServer = async () => {
       console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
       console.log(`📱 Android Emulator: http://10.0.2.2:${PORT}/api`);
       console.log(`📱 iOS Simulator: http://localhost:${PORT}/api`);
-      console.log(`📱 Physical Device: Use your local IP address`);
+      console.log(`📱 Physical Device: http://10.235.174.194:${PORT}/api`);
       console.log(`💡 To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)`);
-      console.log(`\n🛠️  Available API Routes:`);
-      console.log(`   Health Check: GET ${PORT}/api/health`);
-      console.log(`   Matches: GET/POST/PUT/DELETE ${PORT}/api/matches`);
-      console.log(`   Leagues: GET/POST/PUT/DELETE ${PORT}/api/leagues`);
-      console.log(`   Videos: GET/POST/PUT/DELETE ${PORT}/api/videos`);
-      console.log(`   Highlights: GET/POST/PUT/DELETE ${PORT}/api/highlights`);
-      console.log(`   Featured: GET/POST ${PORT}/api/featured-video`);
-      console.log(`   Featured Images: GET/POST/PUT/DELETE ${PORT}/api/featured-images`);
-      console.log(`   Admin Stats: GET ${PORT}/api/admin/stats`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);

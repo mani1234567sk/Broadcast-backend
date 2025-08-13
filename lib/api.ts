@@ -18,12 +18,24 @@ const getApiBaseUrl = () => {
     }
     return productionUrl;
   } else {
-    // For mobile platforms, always use production URL in builds
-    return process.env.EXPO_PUBLIC_API_URL || productionUrl;
+    // For mobile platforms, use development URL in debug mode, production in release
+    if (__DEV__) {
+      return process.env.EXPO_PUBLIC_API_URL || developmentUrl;
+    } else {
+      return process.env.EXPO_PUBLIC_API_URL || productionUrl;
+    }
   }
 };
 
 const API_BASE_URL = getApiBaseUrl();
+
+// Log API configuration for debugging
+console.log('API Configuration:', {
+  baseUrl: API_BASE_URL,
+  platform: Platform.OS,
+  isDev: __DEV__,
+  timestamp: new Date().toISOString()
+});
 
 // Add request timeout and retry logic
 const REQUEST_TIMEOUT = 10000; // 10 seconds
@@ -46,6 +58,16 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    // Add debug logging for release builds
+    if (__DEV__ === false) {
+      console.log('Release build API request:', {
+        endpoint,
+        baseUrl: this.baseUrl,
+        platform: Platform.OS,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
     let lastError: any;
     
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
@@ -65,7 +87,12 @@ class ApiClient {
           signal: controller.signal,
           ...options,
         };
-        console.log(`Making API request (attempt ${attempt + 1}/${MAX_RETRIES + 1}) to: ${url}`);
+        
+        if (__DEV__ === false) {
+          console.log(`Release build API request (attempt ${attempt + 1}/${MAX_RETRIES + 1}) to: ${url}`);
+        } else {
+          console.log(`Making API request (attempt ${attempt + 1}/${MAX_RETRIES + 1}) to: ${url}`);
+        }
         
         const response = await fetch(url, config);
         clearTimeout(timeoutId);
@@ -106,7 +133,16 @@ class ApiClient {
     }
 
     // All attempts failed
-    console.error('All API request attempts failed:', lastError);
+    if (__DEV__ === false) {
+      console.error('Release build - All API request attempts failed:', {
+        error: lastError?.message || 'Unknown error',
+        endpoint,
+        baseUrl: this.baseUrl,
+        platform: Platform.OS
+      });
+    } else {
+      console.error('All API request attempts failed:', lastError);
+    }
     
     // Provide platform-specific error messages
     let errorMessage = 'Network error occurred';
