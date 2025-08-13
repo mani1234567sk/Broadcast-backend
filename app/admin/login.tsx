@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, KeyboardAvo
 import { useRouter } from 'expo-router';
 import { Lock, Mail, Eye, EyeOff, Shield, ArrowLeft } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const ADMIN_CREDENTIALS = {
   email: 'bb@gmail.com',
@@ -114,127 +115,145 @@ export default function AdminLoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <ErrorBoundary>
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Back Button */}
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => router.replace('../(tabs)/')}
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <ArrowLeft size={24} color="#FFFFFF" />
-          <Text style={styles.backButtonText}>Back to Home</Text>
-        </TouchableOpacity>
-
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Shield size={48} color="#FFFFFF" strokeWidth={2} />
-          </View>
-          <Text style={styles.title}>LIVE TV Admin</Text>
-          <Text style={styles.subtitle}>
-            Sign in to access the admin panel and manage your content
-          </Text>
-        </View>
-
-        {/* Login Form */}
-        <View style={styles.formContainer}>
-          {/* Email Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Email Address</Text>
-            <View style={[styles.inputContainer, errors.email ? styles.inputError : null]}>
-              <Mail size={20} color="#522e8e" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={email}
-                onChangeText={(value) => handleInputChange('email', value)}
-                placeholder="Enter your email"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-            </View>
-            {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.inputContainer, errors.password ? styles.inputError : null]}>
-              <Lock size={20} color="#522e8e" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                value={password}
-                onChangeText={(value) => handleInputChange('password', value)}
-                placeholder="Enter your password"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff size={20} color="#6B7280" />
-                ) : (
-                  <Eye size={20} color="#6B7280" />
-                )}
-              </TouchableOpacity>
-            </View>
-            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-          </View>
-
-          {/* Login Button */}
-          <TouchableOpacity
-            style={[
-              styles.loginButton, 
-              (isLoading || isLocked) && styles.loginButtonDisabled
-            ]}
-            onPress={handleLogin}
-            disabled={isLoading || isLocked}
-          >
-            <Text style={styles.loginButtonText}>
-              {isLoading ? 'Signing In...' : isLocked ? 'Account Locked' : 'Sign In'}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Login Attempts Warning */}
-          {loginAttempts > 0 && !isLocked && (
-            <View style={styles.warningContainer}>
-              <Text style={styles.warningText}>
-                ⚠️ {loginAttempts}/3 failed attempts
-              </Text>
+          {/* Debug Info for Release Build */}
+          {__DEV__ === false && (
+            <View style={styles.debugInfo}>
+              <Text style={styles.debugTitle}>Release Build - Login Screen</Text>
+              <Text style={styles.debugText}>Build Mode: {__DEV__ ? 'Debug' : 'Release'}</Text>
+              <Text style={styles.debugText}>Platform: {Platform.OS}</Text>
             </View>
           )}
 
-          {/* Demo Credentials Hint */}
-          <View style={styles.demoHint}>
-            <Text style={styles.demoHintTitle}>Demo Credentials:</Text>
-            <Text style={styles.demoHintText}>Email: bb@gmail.com</Text>
-            <Text style={styles.demoHintText}>Password: bb</Text>
-          </View>
-        </View>
+          {/* Back Button */}
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => {
+              try {
+                router.replace('../(tabs)/');
+              } catch (error) {
+                console.error('Navigation error:', error);
+                Alert.alert('Navigation Error', 'Unable to go back. Please restart the app.');
+              }
+            }}
+          >
+            <ArrowLeft size={24} color="#FFFFFF" />
+            <Text style={styles.backButtonText}>Back to Home</Text>
+          </TouchableOpacity>
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Secure admin access for LIVE TV management
-          </Text>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Shield size={48} color="#FFFFFF" strokeWidth={2} />
+            </View>
+            <Text style={styles.title}>LIVE TV Admin</Text>
+            <Text style={styles.subtitle}>
+              Sign in to access the admin panel and manage your content
+            </Text>
+          </View>
+
+          {/* Login Form */}
+          <View style={styles.formContainer}>
+            {/* Email Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <View style={[styles.inputContainer, errors.email ? styles.inputError : null]}>
+                <Mail size={20} color="#522e8e" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={email}
+                  onChangeText={(value) => handleInputChange('email', value)}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                />
+              </View>
+              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+            </View>
+
+            {/* Password Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Password</Text>
+              <View style={[styles.inputContainer, errors.password ? styles.inputError : null]}>
+                <Lock size={20} color="#522e8e" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  value={password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                  placeholder="Enter your password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLoading}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff size={20} color="#6B7280" />
+                  ) : (
+                    <Eye size={20} color="#6B7280" />
+                  )}
+                </TouchableOpacity>
+              </View>
+              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+            </View>
+
+            {/* Login Button */}
+            <TouchableOpacity
+              style={[
+                styles.loginButton, 
+                (isLoading || isLocked) && styles.loginButtonDisabled
+              ]}
+              onPress={handleLogin}
+              disabled={isLoading || isLocked}
+            >
+              <Text style={styles.loginButtonText}>
+                {isLoading ? 'Signing In...' : isLocked ? 'Account Locked' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Login Attempts Warning */}
+            {loginAttempts > 0 && !isLocked && (
+              <View style={styles.warningContainer}>
+                <Text style={styles.warningText}>
+                  ⚠️ {loginAttempts}/3 failed attempts
+                </Text>
+              </View>
+            )}
+
+            {/* Demo Credentials Hint */}
+            <View style={styles.demoHint}>
+              <Text style={styles.demoHintTitle}>Demo Credentials:</Text>
+              <Text style={styles.demoHintText}>Email: bb@gmail.com</Text>
+              <Text style={styles.demoHintText}>Password: bb</Text>
+            </View>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Secure admin access for LIVE TV management
+            </Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ErrorBoundary>
   );
 }
 
@@ -423,5 +442,27 @@ const styles = StyleSheet.create({
     color: '#E0E7FF',
     textAlign: 'center',
     opacity: 0.8,
+  },
+  debugInfo: {
+    backgroundColor: '#EF4444',
+    margin: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontFamily: 'Cocogoose',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });

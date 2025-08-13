@@ -8,6 +8,9 @@ import { useAutoRefresh } from '@/hooks/useRealTimeUpdates';
 import apiClient from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Add error boundary specifically for admin screen
+import ErrorBoundary from '@/components/ErrorBoundary';
+
 interface DashboardStats {
   totalMatches: number;
   liveMatches: number;
@@ -23,11 +26,15 @@ export default function AdminScreen() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   
+  // Add error state for debugging
+  const [error, setError] = useState<string | null>(null);
+  
   // Check authentication status with better error handling
   useFocusEffect(
     React.useCallback(() => {
       const checkAuth = async () => {
         try {
+          setError(null);
           // Check if coming from successful login
           if (params.authenticated === 'true') {
             setIsAuthenticated(true);
@@ -52,9 +59,11 @@ export default function AdminScreen() {
           }
         } catch (error) {
           console.error('Error checking authentication:', error);
+          setError(`Auth check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
           setAuthChecked(true);
           // On error, redirect to login for safety
-          router.replace('/admin/login');
+          // Don't redirect immediately on error, let user see the error
+          // router.replace('/admin/login');
         }
       };
 
@@ -65,18 +74,56 @@ export default function AdminScreen() {
   // Don't render anything until auth is checked
   if (!authChecked) {
     return (
-      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
-        <View style={styles.overlay}>
-          <Header title="Admin Panel" />
-          <View style={styles.loadingContainer}>
-            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-            <Text style={styles.loadingText}>Checking authentication...</Text>
+      <ErrorBoundary>
+        <View style={styles.container}>
+          <View style={styles.overlay}>
+            <Header title="Admin Panel" />
+            <View style={styles.loadingContainer}>
+              <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+              <Text style={styles.loadingText}>Checking authentication...</Text>
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>Debug Error: {error}</Text>
+                </View>
+              )}
+            </View>
           </View>
         </View>
-      </ImageBackground>
+      </ErrorBoundary>
     );
-      }
+  }
 
+  // Show error state if there's an authentication error
+  if (error && !isAuthenticated) {
+    return (
+      <ErrorBoundary>
+        <View style={styles.container}>
+          <View style={styles.overlay}>
+            <Header title="Admin Panel" />
+            <View style={styles.loadingContainer}>
+              <Text style={styles.errorTitle}>Release Build Debug</Text>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={() => {
+                  setError(null);
+                  setAuthChecked(false);
+                }}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={() => router.replace('/admin/login')}
+              >
+                <Text style={styles.loginButtonText}>Go to Login</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </ErrorBoundary>
+    );
+  }
   const [stats, setStats] = useState<DashboardStats>({
     totalMatches: 0,
     liveMatches: 0,
@@ -89,14 +136,17 @@ export default function AdminScreen() {
 
   const fetchStats = async () => {
     try {
+      setError(null);
       const response = await apiClient.getAdminStats();
       if (response.data) {
         setStats(response.data);
       } else {
         console.error('Failed to fetch stats:', response.error);
+        setError(`Failed to fetch stats: ${response.error}`);
       }
     } catch (error) {
       console.error('Error fetching stats:', error);
+      setError(`Stats error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -200,20 +250,55 @@ export default function AdminScreen() {
   // Show loading while checking authentication
   if (!isAuthenticated) {
     return (
-      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
-        <View style={styles.overlay}>
-          <Header title="Admin Panel" />
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Checking authentication...</Text>
+      <ErrorBoundary>
+        <View style={styles.container}>
+          <View style={styles.overlay}>
+            <Header title="Admin Panel" />
+            <View style={styles.loadingContainer}>
+              <Text style={styles.loadingText}>Redirecting to login...</Text>
+              <TouchableOpacity 
+                style={styles.loginButton}
+                onPress={() => router.replace('/admin/login')}
+              >
+                <Text style={styles.loginButtonText}>Go to Login</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </ImageBackground>
+      </ErrorBoundary>
     );
   }
 
   if (loading) {
     return (
-      <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
+      <ErrorBoundary>
+        <View style={styles.container}>
+          <View style={styles.overlay}>
+            <View style={styles.headerContainer}>
+              <Header title="Admin Panel" />
+              <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+                <LogOut size={20} color="#FFFFFF" />
+                <Text style={styles.logoutButtonText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.loadingContainer}>
+              <LoadingSpinner size={50} color="#FFFFFF" showLogo />
+              <Text style={styles.loadingText}>Loading dashboard...</Text>
+              {error && (
+                <View style={styles.errorContainer}>
+                  <Text style={styles.errorText}>Debug: {error}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <View style={styles.container}>
         <View style={styles.overlay}>
           <View style={styles.headerContainer}>
             <Header title="Admin Panel" />
@@ -222,67 +307,67 @@ export default function AdminScreen() {
               <Text style={styles.logoutButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.loadingContainer}>
-            <LoadingSpinner size={50} color="#FFFFFF" showLogo />
-            <Text style={styles.loadingText}>Loading dashboard...</Text>
-          </View>
-        </View>
-      </ImageBackground>
-    );
-  }
+          
+          <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
+            {/* Debug Info for Release Build */}
+            {__DEV__ === false && (
+              <View style={styles.debugSection}>
+                <Text style={styles.debugTitle}>Release Build Debug Info</Text>
+                <Text style={styles.debugText}>Build Mode: {__DEV__ ? 'Debug' : 'Release'}</Text>
+                <Text style={styles.debugText}>Platform: {Platform.OS}</Text>
+                <Text style={styles.debugText}>Auth Status: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}</Text>
+                {error && <Text style={styles.debugText}>Error: {error}</Text>}
+              </View>
+            )}
 
-  return (
-    <ImageBackground source={require('../../assets/images/b.jpg')} style={styles.container} resizeMode="cover">
-      <View style={styles.overlay}>
-        <View style={styles.headerContainer}>
-          <Header title="Admin Panel" />
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <LogOut size={20} color="#FFFFFF" />
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
-          {/* Dashboard Stats */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <BarChart3 size={24} color="#FFFFFF" />
-              <Text style={styles.sectionTitle}>Dashboard Overview</Text>
+            {/* Dashboard Stats */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <BarChart3 size={24} color="#FFFFFF" />
+                <Text style={styles.sectionTitle}>Dashboard Overview</Text>
+              </View>
+              
+              <View style={styles.statsGrid}>
+                <StatCard title="Live Matches" value={stats.liveMatches} color="#EF4444" />
+                <StatCard title="Upcoming" value={stats.upcomingMatches} color="#F59E0B" />
+                <StatCard title="Completed" value={stats.completedMatches} color="#10B981" />
+                <StatCard title="Total Leagues" value={stats.totalLeagues} color="#8B5CF6" />
+                <StatCard title="Total Videos" value={stats.totalVideos} color="#6366F1" />
+                <StatCard title="Total Matches" value={stats.totalMatches} color="#6B46C1" />
+              </View>
             </View>
-            
-            <View style={styles.statsGrid}>
-              <StatCard title="Live Matches" value={stats.liveMatches} color="#EF4444" />
-              <StatCard title="Upcoming" value={stats.upcomingMatches} color="#F59E0B" />
-              <StatCard title="Completed" value={stats.completedMatches} color="#10B981" />
-              <StatCard title="Total Leagues" value={stats.totalLeagues} color="#8B5CF6" />
-              <StatCard title="Total Videos" value={stats.totalVideos} color="#6366F1" />
-              <StatCard title="Total Matches" value={stats.totalMatches} color="#6B46C1" />
-            </View>
-          </View>
 
-          {/* Management Sections */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Management</Text>
-            {adminSections.map((section, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.adminCard}
-                onPress={() => router.push(section.route as any)}
-              >
-                <View style={[styles.iconContainer, { backgroundColor: `${section.color}20` }]}>
-                  <section.icon size={24} color={section.color} />
-                </View>
-                <View style={styles.cardContent}>
-                  <Text style={styles.cardTitle}>{section.title}</Text>
-                  <Text style={styles.cardDescription}>{section.description}</Text>
-                </View>
-                <Plus size={20} color="#E0E7FF" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+            {/* Management Sections */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Management</Text>
+              {adminSections.map((section, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={styles.adminCard}
+                  onPress={() => {
+                    try {
+                      router.push(section.route as any);
+                    } catch (error) {
+                      console.error('Navigation error:', error);
+                      Alert.alert('Navigation Error', `Failed to navigate to ${section.title}`);
+                    }
+                  }}
+                >
+                  <View style={[styles.iconContainer, { backgroundColor: `${section.color}20` }]}>
+                    <section.icon size={24} color={section.color} />
+                  </View>
+                  <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle}>{section.title}</Text>
+                    <Text style={styles.cardDescription}>{section.description}</Text>
+                  </View>
+                  <Plus size={20} color="#E0E7FF" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
       </View>
-    </ImageBackground>
+    </ErrorBoundary>
   );
 }
 
@@ -436,5 +521,74 @@ const styles = StyleSheet.create({
   cardDescription: {
     fontSize: 14,
     color: '#E0E7FF',
+  },
+  debugSection: {
+    backgroundColor: '#EF4444',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  debugTitle: {
+    fontSize: 16,
+    fontFamily: 'Cocogoose',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  errorContainer: {
+    backgroundColor: '#EF4444',
+    margin: 16,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontFamily: 'Cocogoose',
+    fontWeight: 'bold',
+    fontStyle: 'italic',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    marginBottom: 8,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  retryButton: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  retryButtonText: {
+    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  loginButton: {
+    backgroundColor: '#8B5CF6',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });
