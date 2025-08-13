@@ -54,6 +54,7 @@ export default function AdminLoginScreen() {
     if (!validateForm()) return;
 
     setIsLoading(true);
+    console.log('🔐 Attempting admin login...');
 
     try {
       // Simulate loading delay for better UX
@@ -61,15 +62,19 @@ export default function AdminLoginScreen() {
       
       if (email === ADMIN_CREDENTIALS.email && password === ADMIN_CREDENTIALS.password) {
         setLoginAttempts(0);
-        console.log('Admin login successful');
+        console.log('✅ Admin login successful');
         
         // Store authentication state
         await AsyncStorage.setItem('admin_authenticated', 'true');
+        console.log('💾 Authentication state stored');
         
         setIsLoading(false);
+        
         // Navigate to admin panel
+        console.log('🚀 Navigating to admin dashboard...');
         router.replace('/(tabs)/admin?authenticated=true');
       } else {
+        console.log('❌ Invalid credentials');
         const newAttempts = loginAttempts + 1;
         setLoginAttempts(newAttempts);
         
@@ -94,7 +99,7 @@ export default function AdminLoginScreen() {
         }
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       setIsLoading(false);
       Alert.alert(
         'Login Error',

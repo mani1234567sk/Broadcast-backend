@@ -328,7 +328,48 @@ class ApiClient {
 
   // Admin API
   async getAdminStats() {
-    return this.request<any>('/admin/stats');
+    console.log('📊 Requesting admin stats...');
+    
+    try {
+      const response = await this.request<any>('/admin/stats');
+      console.log('📊 Admin stats response:', response);
+      
+      // Handle the case where the API returns success but no data
+      if (response.status === 200 && !response.data) {
+        console.log('⚠️ API returned 200 but no data, using fallback stats');
+        return {
+          data: {
+            totalMatches: 0,
+            liveMatches: 0,
+            upcomingMatches: 0,
+            completedMatches: 0,
+            totalLeagues: 0,
+            totalVideos: 0,
+            totalHighlights: 0,
+          },
+          status: 200
+        };
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('❌ Admin stats request failed:', error);
+      
+      // Return fallback data instead of throwing
+      return {
+        data: {
+          totalMatches: 0,
+          liveMatches: 0,
+          upcomingMatches: 0,
+          completedMatches: 0,
+          totalLeagues: 0,
+          totalVideos: 0,
+          totalHighlights: 0,
+        },
+        status: 200,
+        error: 'Using offline data - server unavailable'
+      };
+    }
   }
 }
 

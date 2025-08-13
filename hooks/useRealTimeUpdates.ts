@@ -86,17 +86,49 @@ export function useRealTimeUpdates() {
 
 export function useAutoRefresh(refreshCallback: () => Promise<void>, dependencies: any[] = []) {
   const { subscribeToUpdates } = useRealTimeUpdates();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    // Add timeout to prevent infinite refresh loops
+    let refreshTimeout: NodeJS.Timeout;
+    
     const unsubscribe = subscribeToUpdates(async (event) => {
-      console.log('Auto-refreshing due to update:', event.type, event.action);
-      try {
-        await refreshCallback();
-      } catch (error) {
-        console.error('Error during auto-refresh:', error);
+      if (isRefreshing) {
+        console.log('Skipping auto-refresh - already refreshing');
+        return;
       }
+      
+      // Clear any existing timeout
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      
+      console.log('🔄 Auto-refreshing due to update:', event.type, event.action);
+      setIsRefreshing(true);
+      
+      // Add timeout to prevent hanging
+      refreshTimeout = setTimeout(async () => {
+        try {
+          await Promise.race([
+            refreshCallback(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Refresh timeout')), 10000)
+            )
+          ]);
+          console.log('✅ Auto-refresh completed');
+        } catch (error) {
+          console.error('❌ Error during auto-refresh:', error);
+        } finally {
+          setIsRefreshing(false);
+        }
+      }, 100);
     });
 
-    return unsubscribe;
+    return () => {
+      if (refreshTimeout) {
+        clearTimeout(refreshTimeout);
+      }
+      unsubscribe();
+    };
   }, dependencies);
 }
