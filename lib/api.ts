@@ -328,48 +328,43 @@ class ApiClient {
 
   // Admin API
   async getAdminStats() {
-    console.log('📊 Requesting admin stats...');
-    
     try {
+      console.log('📊 Requesting admin stats from:', `${this.baseUrl}/admin/stats`);
       const response = await this.request<any>('/admin/stats');
       console.log('📊 Admin stats response:', response);
-      
-      // Handle the case where the API returns success but no data
-      if (response.status === 200 && !response.data) {
-        console.log('⚠️ API returned 200 but no data, using fallback stats');
-        return {
-          data: {
-            totalMatches: 0,
-            liveMatches: 0,
-            upcomingMatches: 0,
-            completedMatches: 0,
-            totalLeagues: 0,
-            totalVideos: 0,
-            totalHighlights: 0,
-          },
-          status: 200
-        };
-      }
-      
       return response;
     } catch (error) {
-      console.error('❌ Admin stats request failed:', error);
-      
-      // Return fallback data instead of throwing
+      console.error('📊 Admin stats request failed:', error);
       return {
-        data: {
-          totalMatches: 0,
-          liveMatches: 0,
-          upcomingMatches: 0,
-          completedMatches: 0,
-          totalLeagues: 0,
-          totalVideos: 0,
-          totalHighlights: 0,
-        },
-        status: 200,
-        error: 'Using offline data - server unavailable'
+        error: 'Failed to fetch admin stats',
+        status: 0
       };
     }
+  }
+
+  // Categories API
+  async getCategories() {
+    return this.request<any[]>('/categories');
+  }
+
+  async createCategory(data: any) {
+    return this.request<any>('/categories', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCategory(id: string, data: any) {
+    return this.request<any>(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.request<any>(`/categories/${id}`, {
+      method: 'DELETE',
+    });
   }
 }
 
