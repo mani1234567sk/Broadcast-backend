@@ -7,7 +7,7 @@ interface MongoConfig {
 }
 
 const config: MongoConfig = {
-  connectionString: process.env.MONGODB_URI || 'mongodb+srv://dreamarena2025:bugsbunny@cluster0.62buxhp.mongodb.net/dreamlive',
+  connectionString: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/dreamlive',
   dbName: 'dreamlive'
 };
 

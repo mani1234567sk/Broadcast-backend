@@ -34,7 +34,7 @@ app.use((req, res, next) => {
 // MongoDB Connection
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://dreamarena2025:bugsbunny@cluster0.62buxhp.mongodb.net/dreamlive';
+const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/dreamlive';
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
