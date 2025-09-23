@@ -122,6 +122,15 @@ const featuredImageSchema = new mongoose.Schema({
   order: { type: Number, default: 0 }
 }, { timestamps: true });
 
+// Categories schema (used by frontend for content categorization)
+const categorySchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  description: { type: String, default: '' },
+  color: { type: String, default: '#522e8e' },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
 // Models
 const Match = mongoose.model('Match', matchSchema);
 const League = mongoose.model('League', leagueSchema);
@@ -129,6 +138,7 @@ const Video = mongoose.model('Video', videoSchema);
 const Highlight = mongoose.model('Highlight', highlightSchema);
 const FeaturedContent = mongoose.model('FeaturedContent', featuredContentSchema);
 const FeaturedImage = mongoose.model('FeaturedImage', featuredImageSchema);
+const Category = mongoose.model('Category', categorySchema);
 
 // Socket.IO for real-time updates
 io.on('connection', (socket) => {
@@ -642,6 +652,68 @@ app.delete('/api/featured-images/:id', async (req, res) => {
   } catch (error) {
     console.error('❌ Error deleting featured image:', error);
     res.status(500).json({ error: 'Failed to delete featured image' });
+  }
+});
+
+// Categories API
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ createdAt: -1 });
+    console.log(`📊 Fetched ${categories.length} categories`);
+    res.json(categories);
+  } catch (error) {
+    console.error('❌ Error fetching categories:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+app.post('/api/categories', async (req, res) => {
+  try {
+    const category = new Category({
+      ...req.body,
+    });
+    await category.save();
+    console.log('✅ Category created:', category.name);
+    res.status(201).json(category);
+  } catch (error) {
+    console.error('❌ Error creating category:', error);
+    // Handle duplicate key error gracefully
+    if (error && error.code === 11000) {
+      return res.status(400).json({ error: 'Category with this name already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create category' });
+  }
+});
+
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    console.log('✅ Category updated:', category.name);
+    res.json(category);
+  } catch (error) {
+    console.error('❌ Error updating category:', error);
+    res.status(500).json({ error: 'Failed to update category' });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const category = await Category.findByIdAndDelete(req.params.id);
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found' });
+    }
+    console.log('✅ Category deleted:', category.name);
+    res.json({ message: 'Category deleted successfully' });
+  } catch (error) {
+    console.error('❌ Error deleting category:', error);
+    res.status(500).json({ error: 'Failed to delete category' });
   }
 });
 
