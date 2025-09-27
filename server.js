@@ -139,6 +139,7 @@ const Highlight = mongoose.model('Highlight', highlightSchema);
 const FeaturedContent = mongoose.model('FeaturedContent', featuredContentSchema);
 const FeaturedImage = mongoose.model('FeaturedImage', featuredImageSchema);
 const Category = mongoose.model('Category', categorySchema);
+const { PointsTable } = require('./lib/mongodb');
 
 // Socket.IO for real-time updates
 io.on('connection', (socket) => {
@@ -799,6 +800,177 @@ process.on('SIGINT', () => {
     mongoose.connection.close();
     process.exit(0);
   });
+});
+
+// Points Tables API endpoints
+
+// GET /api/leagues/:id/points - Fetch points table for a league (optionally filtered by season)
+app.get('/api/leagues/:id/points', async (req, res) => {
+  try {
+    const { season } = req.query;
+    const leagueId = req.params.id;
+
+    const league = await League.findById(leagueId);
+    if (!league) {
+      return res.status(404).json({ error: 'League not found' });
+    }
+
+    const query = { leagueId };
+    if (season) {
+      query.season = season;
+    } else {
+      // If no season specified, get the latest season
+      const latestTable = await PointsTable.findOne({ leagueId }).sort({ createdAt: -1 });
+      if (latestTable) {
+        query.season = latestTable.season;
+      }
+    }
+
+    let pointsTable = await PointsTable.findOne(query);
+
+    if (!pointsTable) {
+      // Create default empty points table
+      const currentSeason = season || new Date().getFullYear().toString();
+      pointsTable = new PointsTable({ 
+        leagueId, 
+        season: currentSeason,
+        points: [] 
+      });
+      await pointsTable.save();
+    }
+
+    // Sort points by position before returning
+    const sortedPoints = [...pointsTable.points].sort((a, b) => a.position - b.position);
+
+    res.json({
+      league: { id: league._id, name: league.name, season: pointsTable.season },
+      points: sortedPoints
+    });
+  } catch (error) {
+    console.error('❌ Error fetching points table:', error);
+    res.status(500).json({ error: error.message || 'Failed to fetch points table' });
+  }
+});
+
+// PUT /api/leagues/:id/points - Update points table for a league and season
+app.put('/api/leagues/:id/points', async (req, res) => {
+  try {
+    const league = await League.findById(req.params.id);
+    if (!league) {
+      return res.status(404).json({ error: 'League not found' });
+    }
+
+    const { season, points } = req.body;
+    const currentSeason = season || new Date().getFullYear().toString();
+
+    // Validate points data
+    if (!Array.isArray(points)) {
+      return res.status(400).json({ error: 'Points data must be an array' });
+    }
+
+    // Normalize and validate points data
+    let normalized = points.map((row, index) => {
+      const team = String(row.team || '').trim();
+      if (!team) {
+        throw new Error(`Team name is required for entry at position ${index + 1}`);
+      }
+
+      const position = Number(row.position) || index + 1;
+      const played = Number(row.played) || 0;
+      const won = Number(row.won) || 0;
+      const drawn = Number(row.drawn) || 0;
+      const lost = Number(row.lost) || 0;
+      const goalsFor = Number(row.goalsFor) || 0;
+      const goalsAgainst = Number(row.goalsAgainst) || 0;
+      const goalDifference = goalsFor - goalsAgainst;
+      const points = Number(row.points) || (won * 3 + drawn);
+
+      return {
+        team,
+        position,
+        played: played || (won + drawn + lost),
+        won, drawn, lost,
+        goalsFor, goalsAgainst, goalDifference, points,
+        lastUpdated: new Date()
+      };
+    });
+
+    // Sort by Points desc, GD desc, GF desc, Team asc
+    normalized.sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+      if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+      return a.team.localeCompare(b.team);
+    });
+
+    // Recalculate positions
+    normalized = normalized.map((entry, index) => ({
+      ...entry,
+      position: index + 1
+    }));
+
+    // Update or create points table
+    const update = {
+      season: currentSeason,
+      points: normalized,
+      lastUpdated: new Date()
+    };
+
+    const pointsTable = await PointsTable.findOneAndUpdate(
+      { leagueId, season: currentSeason },
+      update,
+      { new: true, upsert: true }
+    );
+
+    // Broadcast update via WebSocket
+    broadcastUpdate('pointsTable', 'update', {
+      leagueId,
+      season: currentSeason,
+      points: normalized
+    });
+
+    res.json({
+      message: 'Points table updated successfully',
+      league: { id: league._id, name: league.name, season: currentSeason },
+      points: normalized
+    });
+  } catch (error) {
+    console.error('❌ Error updating points table:', error);
+    res.status(500).json({ error: error.message || 'Failed to update points table' });
+  }
+});
+
+// DELETE /api/leagues/:id/points - Delete points table for a league and season
+app.delete('/api/leagues/:id/points', async (req, res) => {
+  try {
+    const { season } = req.query;
+    const leagueId = req.params.id;
+
+    if (!season) {
+      return res.status(400).json({ error: 'Season parameter is required' });
+    }
+
+    const result = await PointsTable.findOneAndDelete({ leagueId, season });
+
+    if (!result) {
+      return res.status(404).json({ error: 'Points table not found' });
+    }
+
+    // Broadcast deletion via WebSocket
+    broadcastUpdate('pointsTable', 'delete', {
+      leagueId,
+      season
+    });
+
+    res.json({
+      message: 'Points table deleted successfully',
+      leagueId,
+      season
+    });
+  } catch (error) {
+    console.error('❌ Error deleting points table:', error);
+    res.status(500).json({ error: error.message || 'Failed to delete points table' });
+  }
 });
 
 startServer();

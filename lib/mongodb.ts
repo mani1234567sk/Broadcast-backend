@@ -199,3 +199,54 @@ export interface FeaturedImageDocument {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Points Table Schema
+const pointsTableSchema = new mongoose.Schema({
+  leagueId: { type: mongoose.Schema.Types.ObjectId, ref: 'League', required: true },
+  season: { type: String, required: true },
+  points: [
+    {
+      team: { type: String, required: true },
+      position: { type: Number, required: true },
+      played: { type: Number, default: 0 },
+      won: { type: Number, default: 0 },
+      drawn: { type: Number, default: 0 },
+      lost: { type: Number, default: 0 },
+      goalsFor: { type: Number, default: 0 },
+      goalsAgainst: { type: Number, default: 0 },
+      goalDifference: { type: Number, default: 0 },
+      points: { type: Number, default: 0 },
+      lastUpdated: { type: Date, default: Date.now }
+    }
+  ],
+  lastUpdated: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+// Ensure unique points table per league per season
+pointsTableSchema.index({ leagueId: 1, season: 1 }, { unique: true });
+
+export const PointsTable = mongoose.models.PointsTable || mongoose.model('PointsTable', pointsTableSchema);
+
+export interface PointsTableEntry {
+  team: string;
+  position: number;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  lastUpdated: Date;
+}
+
+export interface PointsTableDocument {
+  _id: string;
+  leagueId: string;
+  season: string;
+  points: PointsTableEntry[];
+  lastUpdated: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
