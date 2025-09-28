@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const app = express();
@@ -131,6 +133,16 @@ const categorySchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
+// Admin schema for authentication
+const adminSchema = new mongoose.Schema({
+  email: { type: String, required: true, unique: true },
+  passwordHash: { type: String, required: true },
+  role: { type: String, enum: ['admin', 'superadmin'], default: 'admin' },
+  firstName: String,
+  lastName: String,
+  active: { type: Boolean, default: true }
+}, { timestamps: true });
+
 // Models
 const Match = mongoose.model('Match', matchSchema);
 const League = mongoose.model('League', leagueSchema);
@@ -139,7 +151,8 @@ const Highlight = mongoose.model('Highlight', highlightSchema);
 const FeaturedContent = mongoose.model('FeaturedContent', featuredContentSchema);
 const FeaturedImage = mongoose.model('FeaturedImage', featuredImageSchema);
 const Category = mongoose.model('Category', categorySchema);
-const { PointsTable } = require('./lib/mongodb.ts');
+const Admin = mongoose.model('Admin', adminSchema);
+const { PointsTable } = require('./lib/mongodb');
 
 // Socket.IO for real-time updates
 io.on('connection', (socket) => {
@@ -171,6 +184,159 @@ app.get('/api/health', (req, res) => {
     platform: 'Node.js',
     version: '1.0.0'
   });
+});
+
+// JWT Authentication Middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    console.log('No token provided');
+    return res.sendStatus(401);
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', (err, user) => {
+    if (err) {
+      console.log('Token verification failed:', err.message);
+      return res.sendStatus(403);
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Admin role middleware
+const requireAdmin = (req, res, next) => {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+    next();
+  } else {
+    res.status(403).json({ error: 'Admin access required' });
+  }
+};
+
+// Admin Authentication Routes
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Find admin by email
+    const admin = await Admin.findOne({ email: email.toLowerCase(), active: true });
+    if (!admin) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, admin.passwordHash);
+    if (!isValidPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        id: admin._id, 
+        email: admin.email, 
+        role: admin.role 
+      },
+      process.env.JWT_SECRET || 'your-fallback-secret',
+      { expiresIn: '24h' }
+    );
+    
+    console.log('✅ Admin login successful:', admin.email);
+    
+    res.json({
+      success: true,
+      token,
+      admin: {
+        id: admin._id,
+        email: admin.email,
+        role: admin.role,
+        firstName: admin.firstName,
+        lastName: admin.lastName
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+app.post('/api/admin/register', async (req, res) => {
+  try {
+    const { email, password, firstName, lastName, role = 'admin' } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
+    
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({ email: email.toLowerCase() });
+    if (existingAdmin) {
+      return res.status(409).json({ error: 'Admin account already exists' });
+    }
+    
+    // Hash password
+    const saltRounds = 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+    
+    // Create new admin
+    const admin = new Admin({
+      email: email.toLowerCase(),
+      passwordHash,
+      firstName,
+      lastName,
+      role: ['admin', 'superadmin'].includes(role) ? role : 'admin'
+    });
+    
+    await admin.save();
+    
+    console.log('✅ Admin registered:', admin.email);
+    
+    res.status(201).json({
+      success: true,
+      admin: {
+        id: admin._id,
+        email: admin.email,
+        role: admin.role,
+        firstName: admin.firstName,
+        lastName: admin.lastName
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+app.get('/api/admin/me', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.user.id).select('-passwordHash');
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+    
+    res.json({
+      id: admin._id,
+      email: admin.email,
+      role: admin.role,
+      firstName: admin.firstName,
+      lastName: admin.lastName
+    });
+  } catch (error) {
+    console.error('❌ Error fetching admin profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  // Since we're using stateless JWT, logout is handled client-side
+  console.log('✅ Admin logout requested');
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // API Routes
@@ -719,7 +885,7 @@ app.delete('/api/categories/:id', async (req, res) => {
 });
 
 // Admin Stats API
-app.get('/api/admin/stats', async (req, res) => {
+app.get('/api/admin/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const [totalMatches, liveMatches, upcomingMatches, completedMatches, totalLeagues, totalVideos, totalHighlights] = await Promise.all([
       Match.countDocuments(),
@@ -764,9 +930,33 @@ app.use('*', (req, res) => {
 // Initialize database and start server
 const PORT = process.env.PORT || 3001;
 
+// Create default admin user if none exists
+const createDefaultAdmin = async () => {
+  try {
+    const adminCount = await Admin.countDocuments();
+    if (adminCount === 0) {
+      console.log('👤 Creating default admin user...');
+      const defaultAdmin = new Admin({
+        email: 'admin@dreamlive.com',
+        passwordHash: await bcrypt.hash('admin123', 12),
+        firstName: 'Dream',
+        lastName: 'Admin',
+        role: 'superadmin'
+      });
+      await defaultAdmin.save();
+      console.log('✅ Default admin created: admin@dreamlive.com / admin123');
+    }
+  } catch (error) {
+    console.error('❌ Error creating default admin:', error);
+  }
+};
+
 const startServer = async () => {
   try {
     await connectDB();
+    
+    // Create default admin user
+    await createDefaultAdmin();
     
     // Listen on all interfaces (0.0.0.0) to allow mobile device connections
     server.listen(PORT, '0.0.0.0', () => {
@@ -778,6 +968,7 @@ const startServer = async () => {
       console.log(`📱 iOS Simulator: http://localhost:${PORT}/api`);
       console.log(`📱 Physical Device: http://10.235.174.194:${PORT}/api`);
       console.log(`💡 To find your IP: ipconfig (Windows) or ifconfig (Mac/Linux)`);
+      console.log(`🔐 Default Admin: admin@dreamlive.com / admin123`);
     });
   } catch (error) {
     console.error('❌ Failed to start server:', error);
