@@ -152,7 +152,7 @@ const FeaturedContent = mongoose.model('FeaturedContent', featuredContentSchema)
 const FeaturedImage = mongoose.model('FeaturedImage', featuredImageSchema);
 const Category = mongoose.model('Category', categorySchema);
 const Admin = mongoose.model('Admin', adminSchema);
-const { PointsTable } = require('./lib/mongodb');
+const { PointsTable } = require('./lib/mongodb.ts');
 
 // Socket.IO for real-time updates
 io.on('connection', (socket) => {
